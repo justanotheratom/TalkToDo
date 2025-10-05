@@ -18,8 +18,7 @@ let package = Package(
         )
     ],
     dependencies: [
-        // Leap SDK will be added via SPM
-        .package(url: "https://github.com/liquid-ai/leap-ios-sdk.git", from: "1.0.0")
+        .package(url: "https://github.com/Liquid4All/leap-ios.git", from: "0.5.0")
     ],
     targets: [
         .target(
@@ -30,7 +29,12 @@ let package = Package(
             name: "TalkToDoFeature",
             dependencies: [
                 "TalkToDoShared",
-                .product(name: "LeapSDK", package: "leap-ios-sdk")
+                .product(name: "LeapSDK", package: "leap-ios"),
+                .product(name: "LeapModelDownloader", package: "leap-ios")
+            ],
+            linkerSettings: [
+                .linkedFramework("AVFoundation"),
+                .linkedFramework("Speech")
             ]
         ),
         .testTarget(
