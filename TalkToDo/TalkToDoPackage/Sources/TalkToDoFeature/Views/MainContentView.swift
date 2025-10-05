@@ -12,15 +12,32 @@ public struct MainContentView: View {
     @State private var voiceInputStore = VoiceInputStore()
     @State private var voiceCoordinator: VoiceInputCoordinator?
     @State private var llmService = LLMInferenceService()
+    @State private var onboardingStore: OnboardingStore?
 
     @State private var showUndoPill = false
     @State private var undoPillDismissTask: Task<Void, Never>?
     @State private var selectedNodeContext: NodeContext?
     @State private var showSettings = false
+    @State private var showOnboarding = false
 
     public init() {}
 
     public var body: some View {
+        Group {
+            if let onboarding = onboardingStore, !onboarding.hasCompletedOnboarding {
+                OnboardingView(store: onboarding, onComplete: {
+                    showOnboarding = false
+                })
+            } else {
+                mainContent
+            }
+        }
+        .task {
+            await initializeApp()
+        }
+    }
+
+    private var mainContent: some View {
         NavigationStack {
             ZStack(alignment: .bottom) {
                 // Node list
@@ -63,14 +80,17 @@ public struct MainContentView: View {
                 SettingsView()
             }
         }
-        .task {
-            await initializeApp()
-        }
     }
 
     // MARK: - Initialization
 
     private func initializeApp() async {
+        // Initialize onboarding store
+        onboardingStore = OnboardingStore(
+            voiceInputStore: voiceInputStore,
+            llmService: llmService
+        )
+
         // Initialize event store
         let store = EventStore(modelContext: modelContext, nodeTree: nodeTree)
         eventStore = store
@@ -92,10 +112,28 @@ public struct MainContentView: View {
             undoManager: undoManager
         )
 
-        // Prefetch permissions
-        await voiceInputStore.prefetchPermissions()
+        // Load default model if onboarding is complete
+        if onboardingStore?.hasCompletedOnboarding == true {
+            await loadDefaultModelIfNeeded()
+        }
+    }
 
-        // TODO: Load default model (will be added in Phase 7)
+    private func loadDefaultModelIfNeeded() async {
+        let storage = ModelStorageService()
+        let defaultModel = ModelCatalog.defaultModel
+
+        guard storage.isDownloaded(entry: defaultModel) else {
+            AppLogger.ui().log(event: "app:modelNotDownloaded", data: ["slug": defaultModel.slug])
+            return
+        }
+
+        do {
+            let url = try storage.expectedResourceURL(for: defaultModel)
+            try await llmService.loadModel(at: url)
+            AppLogger.ui().log(event: "app:modelLoaded", data: ["slug": defaultModel.slug])
+        } catch {
+            AppLogger.ui().logError(event: "app:modelLoadFailed", error: error)
+        }
     }
 
     // MARK: - Node Actions
