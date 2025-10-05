@@ -16,9 +16,9 @@ Hold the mic, speak naturally, and watch your thoughts transform into structured
 
 ## Requirements
 
-- iOS 18.0+ or macOS 15.7+
+- iOS 18.5+ or macOS 15.7+
 - Xcode 16.0+
-- Swift 5.9+
+- Swift 6.0+
 - Active Apple Developer account (for CloudKit)
 
 ## Getting Started
