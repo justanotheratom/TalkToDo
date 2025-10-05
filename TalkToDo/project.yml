@@ -38,6 +38,7 @@ targets:
           - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
+          - UIInterfaceOrientationPortraitUpsideDown
         NSMicrophoneUsageDescription: "TalkToDo needs microphone access to capture your voice."
         NSSpeechRecognitionUsageDescription: "TalkToDo uses speech recognition to convert your voice to structured lists."
 
