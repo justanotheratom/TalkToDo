@@ -28,6 +28,7 @@ targets:
         INFOPLIST_FILE: iOS/Info.plist
         SWIFT_VERSION: "5.9"
         ENABLE_PREVIEWS: YES
+        CODE_SIGN_ENTITLEMENTS: iOS/TalkToDo.entitlements
     info:
       path: iOS/Info.plist
       properties:
@@ -57,6 +58,7 @@ targets:
         INFOPLIST_FILE: macOS/Info.plist
         SWIFT_VERSION: "5.9"
         ENABLE_PREVIEWS: YES
+        CODE_SIGN_ENTITLEMENTS: macOS/TalkToDo.entitlements
     info:
       path: macOS/Info.plist
       properties:
