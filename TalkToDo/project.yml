@@ -2,7 +2,7 @@ name: TalkToDo
 options:
   bundleIdPrefix: com.talktodo
   deploymentTarget:
-    iOS: "18.0"
+    iOS: "18.5"
     macOS: "15.7"
   xcodeVersion: "16.0"
 
@@ -14,7 +14,7 @@ targets:
   TalkToDo-iOS:
     type: application
     platform: iOS
-    deploymentTarget: "18.0"
+    deploymentTarget: "18.5"
     sources:
       - path: iOS
     dependencies:
