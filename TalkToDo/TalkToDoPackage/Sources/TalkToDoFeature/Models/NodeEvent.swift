@@ -4,11 +4,13 @@ import SwiftData
 /// Event in the append-only log (SwiftData model)
 @Model
 public final class NodeEvent {
-    @Attribute(.unique) public var id: UUID
-    public var timestamp: Date
-    public var type: String  // EventType as String for SwiftData
-    public var payload: Data  // JSON-encoded event data
-    public var batchId: String  // Groups events from same user interaction for undo
+    // CloudKit requires all properties to be optional or have defaults
+    // Removed @Attribute(.unique) as CloudKit doesn't support unique constraints
+    public var id: UUID = UUID()
+    public var timestamp: Date = Date()
+    public var type: String = ""  // EventType as String for SwiftData
+    public var payload: Data = Data()  // JSON-encoded event data
+    public var batchId: String = ""  // Groups events from same user interaction for undo
 
     public init(
         id: UUID = UUID(),
