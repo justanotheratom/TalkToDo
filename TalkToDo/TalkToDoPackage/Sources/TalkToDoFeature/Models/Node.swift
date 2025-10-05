@@ -28,15 +28,16 @@ public struct Node: Identifiable, Equatable {
     }
 
     /// Get the depth of this node in the tree (0 = root)
-    public func depth(from root: Node) -> Int {
+    /// Returns nil if this node is not found under the given root
+    public func depth(from root: Node) -> Int? {
         if root.id == id {
             return 0
         }
         for child in root.children {
-            if let childDepth = child.depth(from: child) {
+            if let childDepth = child.depth(from: root) {
                 return 1 + childDepth
             }
         }
-        return 0
+        return nil
     }
 }
