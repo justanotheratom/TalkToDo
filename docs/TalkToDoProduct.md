@@ -36,10 +36,10 @@ TalkToDo is a **showcase app** for the **voice‑to‑structure** interaction ca
 - **Undo Pill:** Appears briefly to reverse the last operation.
 
 ### Node‑Level Actions
-- **Long‑Press on Node:** Speak a context‑aware command (e.g., “add subtasks,” “rename this”).
-- **Swipe Left:** Reveal Edit Title, Delete, Duplicate, Merge.
-- **Tap Node:** Expand the node inline to reveal actions (Edit, Add Child, Move, Merge) without opening a separate sheet.
-- **No Inline Editing:** Titles cannot be edited directly; all edits go through voice or actions.
+- **Tap Node:** Toggle collapse/expand of children. Collapsed nodes show a subtle chevron indicator.
+- **Long‑Press on Node:** Speak a context‑aware command. The selected node's title and hierarchy position are passed as context to the LLM (e.g., "add subtasks," "rename this").
+- **Swipe Left:** Reveal Edit and Delete actions.
+- **No Inline Editing:** Titles cannot be edited directly; all edits go through voice or swipe actions.
 
 ### Feedback & Feel
 - Light haptics when recording starts and ends.
@@ -54,12 +54,18 @@ TalkToDo is a **showcase app** for the **voice‑to‑structure** interaction ca
 - **Event Log:** Append‑only source of truth (InsertNode, MoveNode, RenameNode, etc.)
 - **Snapshot:** In-memory structure always kept in sync with the event log. On app startup, the snapshot is regenerated from the event log, and thereafter every new event appended to the log also updates the snapshot.
 - **Storage:** SwiftData local persistence, synced via CloudKit Private Database
+- **Conflict Resolution:** Last-write-wins strategy for concurrent edits across devices
 
 ### LLM Processing
-- **Input:** Complete ASR transcript (after release)
+- **Input:** Complete ASR transcript (after release), plus optional node context for node-level commands
 - **Output:** Structured Operation Plan (validated JSON schema)
 - **Operations:** insert_node, insert_children, reparent_node, rename_node, delete_node, etc.
 - **Validation:** Local schema check before applying to event reducer
+- **System Prompt:** Instructs LFM2 to parse natural speech into hierarchical operations. The prompt emphasizes:
+  - Extracting implicit hierarchy from pauses, transitions ("then," "also"), and semantic grouping
+  - Generating valid JSON with explicit parent-child relationships
+  - Handling ambiguity gracefully (e.g., flat lists when hierarchy is unclear)
+  - For node-level commands: interpreting intent relative to the provided node context
 
 ---
 
@@ -104,6 +110,13 @@ TalkToDo is a **showcase app** for the **voice‑to‑structure** interaction ca
 - **Micro‑Delights:** haptic pop, glowing outline, kinetic drag handle.
 - **Zero Clutter:** no tags, due dates, or status markers.
 - **Hierarchy Visualization:** indentation and gentle fade motion reinforce structure.
+
+### Empty State
+On first launch or when all nodes are deleted, the app displays:
+- **Visual:** A centered, pulsing mic icon with subtle shadow
+- **Text:** "Hold the mic and speak your thoughts"
+- **Subtext:** "Try: 'Weekend plans... hiking, groceries, call mom'"
+- **Animation:** Gentle breathing motion to invite interaction
 
 ---
 
