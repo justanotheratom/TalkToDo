@@ -1,0 +1,65 @@
+name: TalkToDo
+options:
+  bundleIdPrefix: com.talktodo
+  deploymentTarget:
+    iOS: "18.0"
+    macOS: "15.7"
+  xcodeVersion: "16.0"
+
+packages:
+  TalkToDoPackage:
+    path: TalkToDoPackage
+
+targets:
+  TalkToDo-iOS:
+    type: application
+    platform: iOS
+    deploymentTarget: "18.0"
+    sources:
+      - path: iOS
+    dependencies:
+      - package: TalkToDoPackage
+        product: TalkToDoFeature
+      - package: TalkToDoPackage
+        product: TalkToDoShared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.talktodo.ios
+        INFOPLIST_FILE: iOS/Info.plist
+        SWIFT_VERSION: "5.9"
+        ENABLE_PREVIEWS: YES
+    info:
+      path: iOS/Info.plist
+      properties:
+        CFBundleDisplayName: TalkToDo
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        NSMicrophoneUsageDescription: "TalkToDo needs microphone access to capture your voice."
+        NSSpeechRecognitionUsageDescription: "TalkToDo uses speech recognition to convert your voice to structured lists."
+
+  TalkToDo-macOS:
+    type: application
+    platform: macOS
+    deploymentTarget: "15.7"
+    sources:
+      - path: macOS
+    dependencies:
+      - package: TalkToDoPackage
+        product: TalkToDoFeature
+      - package: TalkToDoPackage
+        product: TalkToDoShared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.talktodo.macos
+        INFOPLIST_FILE: macOS/Info.plist
+        SWIFT_VERSION: "5.9"
+        ENABLE_PREVIEWS: YES
+    info:
+      path: macOS/Info.plist
+      properties:
+        CFBundleDisplayName: TalkToDo
+        NSMicrophoneUsageDescription: "TalkToDo needs microphone access to capture your voice."
+        NSSpeechRecognitionUsageDescription: "TalkToDo uses speech recognition to convert your voice to structured lists."

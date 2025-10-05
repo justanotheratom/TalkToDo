@@ -1,0 +1,450 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		1B9107937FEB734137CD3CC9 /* TalkToDoShared in Frameworks */ = {isa = PBXBuildFile; productRef = 6089BD2DF0DCB69CC040FCDB /* TalkToDoShared */; };
+		1E19C26E4C2B89B2208C6CD8 /* TalkToDoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A01FDE7102AE4B0B4D74C946 /* TalkToDoApp.swift */; };
+		1F289D0DBA8DEC18B2100AED /* TalkToDoShared in Frameworks */ = {isa = PBXBuildFile; productRef = 2451926ECE7119285A17A200 /* TalkToDoShared */; };
+		706CCD4C174ADEE20D97667D /* TalkToDoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3677FDD0DB09CAECB4D7C1C1 /* TalkToDoApp.swift */; };
+		7BF0149E87E14808388CCD2F /* TalkToDoFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 6D0BD4C5B5E211B0007BBFFC /* TalkToDoFeature */; };
+		B5ED148A1B0A14AFE7A2E6C5 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFB72481F9DBA867A9109614 /* ContentView.swift */; };
+		B83FE05D6EF6D2B33CA321B2 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7B9EDEEAC34DC2966298C8F /* ContentView.swift */; };
+		CEA1F704C4875413E993D575 /* TalkToDoFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 3DAC79B4B927E2E73EABF6DD /* TalkToDoFeature */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		3677FDD0DB09CAECB4D7C1C1 /* TalkToDoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TalkToDoApp.swift; sourceTree = "<group>"; };
+		55514AFF967BA97D309B9276 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		71E2F80BB89CBB4386DA9BE6 /* TalkToDo-macOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "TalkToDo-macOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		9E63F67E14174A7784F35512 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		A01FDE7102AE4B0B4D74C946 /* TalkToDoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TalkToDoApp.swift; sourceTree = "<group>"; };
+		AB2004FA982F34AD908D6FEF /* TalkToDoPackage */ = {isa = PBXFileReference; lastKnownFileType = folder; name = TalkToDoPackage; path = TalkToDoPackage; sourceTree = SOURCE_ROOT; };
+		BFB72481F9DBA867A9109614 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		D7B9EDEEAC34DC2966298C8F /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		F069371C8E25A0C578E386D7 /* TalkToDo-iOS.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = "TalkToDo-iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		CFE3D809B0BC54D2BADB3FA5 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CEA1F704C4875413E993D575 /* TalkToDoFeature in Frameworks */,
+				1B9107937FEB734137CD3CC9 /* TalkToDoShared in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F841A4FC7B0290551ABEFAE0 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7BF0149E87E14808388CCD2F /* TalkToDoFeature in Frameworks */,
+				1F289D0DBA8DEC18B2100AED /* TalkToDoShared in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		1FE37433F62ABDCDE555F693 = {
+			isa = PBXGroup;
+			children = (
+				28AC137D110B081AA3C3E17D /* iOS */,
+				F8BB3D72A90C53D70A13EE0A /* macOS */,
+				ECE06735F02CA687E8CCC196 /* Packages */,
+				FA4341633C4EEF2B4C313E3B /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		28AC137D110B081AA3C3E17D /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				D7B9EDEEAC34DC2966298C8F /* ContentView.swift */,
+				9E63F67E14174A7784F35512 /* Info.plist */,
+				A01FDE7102AE4B0B4D74C946 /* TalkToDoApp.swift */,
+			);
+			path = iOS;
+			sourceTree = "<group>";
+		};
+		ECE06735F02CA687E8CCC196 /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				AB2004FA982F34AD908D6FEF /* TalkToDoPackage */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
+		F8BB3D72A90C53D70A13EE0A /* macOS */ = {
+			isa = PBXGroup;
+			children = (
+				BFB72481F9DBA867A9109614 /* ContentView.swift */,
+				55514AFF967BA97D309B9276 /* Info.plist */,
+				3677FDD0DB09CAECB4D7C1C1 /* TalkToDoApp.swift */,
+			);
+			path = macOS;
+			sourceTree = "<group>";
+		};
+		FA4341633C4EEF2B4C313E3B /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				F069371C8E25A0C578E386D7 /* TalkToDo-iOS.app */,
+				71E2F80BB89CBB4386DA9BE6 /* TalkToDo-macOS.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		B69D887E225C0E07E05B996C /* TalkToDo-macOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 06D079960C07FB0C69332450 /* Build configuration list for PBXNativeTarget "TalkToDo-macOS" */;
+			buildPhases = (
+				8F8B799C05856020B131FCAD /* Sources */,
+				F841A4FC7B0290551ABEFAE0 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "TalkToDo-macOS";
+			packageProductDependencies = (
+				6D0BD4C5B5E211B0007BBFFC /* TalkToDoFeature */,
+				2451926ECE7119285A17A200 /* TalkToDoShared */,
+			);
+			productName = "TalkToDo-macOS";
+			productReference = 71E2F80BB89CBB4386DA9BE6 /* TalkToDo-macOS.app */;
+			productType = "com.apple.product-type.application";
+		};
+		C7DAA277352B2DA9BD5F7FFC /* TalkToDo-iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5A168DE351BE6C4D7EC05626 /* Build configuration list for PBXNativeTarget "TalkToDo-iOS" */;
+			buildPhases = (
+				13A5A336B5D3B25BD5A20A3B /* Sources */,
+				CFE3D809B0BC54D2BADB3FA5 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "TalkToDo-iOS";
+			packageProductDependencies = (
+				3DAC79B4B927E2E73EABF6DD /* TalkToDoFeature */,
+				6089BD2DF0DCB69CC040FCDB /* TalkToDoShared */,
+			);
+			productName = "TalkToDo-iOS";
+			productReference = F069371C8E25A0C578E386D7 /* TalkToDo-iOS.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		363DA1B3D878E27B0ED06528 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1600;
+			};
+			buildConfigurationList = 020218044694ED04C48C31B1 /* Build configuration list for PBXProject "TalkToDo" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 1FE37433F62ABDCDE555F693;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				884198E2BC1EA35FAD5BFE00 /* XCLocalSwiftPackageReference "TalkToDoPackage" */,
+			);
+			preferredProjectObjectVersion = 77;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				C7DAA277352B2DA9BD5F7FFC /* TalkToDo-iOS */,
+				B69D887E225C0E07E05B996C /* TalkToDo-macOS */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		13A5A336B5D3B25BD5A20A3B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B83FE05D6EF6D2B33CA321B2 /* ContentView.swift in Sources */,
+				1E19C26E4C2B89B2208C6CD8 /* TalkToDoApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8F8B799C05856020B131FCAD /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B5ED148A1B0A14AFE7A2E6C5 /* ContentView.swift in Sources */,
+				706CCD4C174ADEE20D97667D /* TalkToDoApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		4CC3573F1ACC791A56FCACC3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MACOSX_DEPLOYMENT_TARGET = 15.7;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		790C6E6C8B94A17789F9D03A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = iOS/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.talktodo.ios;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		8CB74C0AA1A9C27A2C355150 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = macOS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.7;
+				PRODUCT_BUNDLE_IDENTIFIER = com.talktodo.macos;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.9;
+			};
+			name = Release;
+		};
+		9107D8EC7DB1B6D4FEAD03CE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MACOSX_DEPLOYMENT_TARGET = 15.7;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		C2A2FF76AE384401517907D6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = macOS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.7;
+				PRODUCT_BUNDLE_IDENTIFIER = com.talktodo.macos;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.9;
+			};
+			name = Debug;
+		};
+		D81D59C42233F6F599793BFE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = iOS/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.talktodo.ios;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		020218044694ED04C48C31B1 /* Build configuration list for PBXProject "TalkToDo" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9107D8EC7DB1B6D4FEAD03CE /* Debug */,
+				4CC3573F1ACC791A56FCACC3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		06D079960C07FB0C69332450 /* Build configuration list for PBXNativeTarget "TalkToDo-macOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C2A2FF76AE384401517907D6 /* Debug */,
+				8CB74C0AA1A9C27A2C355150 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		5A168DE351BE6C4D7EC05626 /* Build configuration list for PBXNativeTarget "TalkToDo-iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				790C6E6C8B94A17789F9D03A /* Debug */,
+				D81D59C42233F6F599793BFE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		884198E2BC1EA35FAD5BFE00 /* XCLocalSwiftPackageReference "TalkToDoPackage" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = TalkToDoPackage;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		2451926ECE7119285A17A200 /* TalkToDoShared */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = TalkToDoShared;
+		};
+		3DAC79B4B927E2E73EABF6DD /* TalkToDoFeature */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = TalkToDoFeature;
+		};
+		6089BD2DF0DCB69CC040FCDB /* TalkToDoShared */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = TalkToDoShared;
+		};
+		6D0BD4C5B5E211B0007BBFFC /* TalkToDoFeature */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = TalkToDoFeature;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 363DA1B3D878E27B0ED06528 /* Project object */;
+}
