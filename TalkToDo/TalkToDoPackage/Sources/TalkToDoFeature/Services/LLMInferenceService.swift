@@ -53,9 +53,11 @@ public actor LLMInferenceService {
         let systemPrompt = createSystemPrompt(nodeContext: nodeContext)
         let userPrompt = transcript
 
+        // Create conversation with system prompt as first message
+        let systemMessage = ChatMessage(role: .system, content: [.text(systemPrompt)])
         let conversation = Conversation(
             modelRunner: runner,
-            systemPrompt: systemPrompt
+            history: [systemMessage]
         )
 
         let message = ChatMessage(role: .user, content: [.text(userPrompt)])
@@ -211,7 +213,7 @@ public actor LLMInferenceService {
 // MARK: - Supporting Types
 
 @available(iOS 18.0, macOS 15.0, *)
-public struct NodeContext {
+public struct NodeContext: Sendable {
     public let nodeId: String
     public let title: String
     public let depth: Int

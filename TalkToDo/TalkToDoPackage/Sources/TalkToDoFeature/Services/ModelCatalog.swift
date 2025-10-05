@@ -1,7 +1,7 @@
 import Foundation
 
 /// Catalog entry for an LFM2 model
-public struct ModelCatalogEntry: Identifiable, Hashable {
+public struct ModelCatalogEntry: Identifiable, Hashable, Sendable {
     public let id: String
     public let slug: String
     public let displayName: String
@@ -10,7 +10,7 @@ public struct ModelCatalogEntry: Identifiable, Hashable {
     public let estimatedSizeMB: Int
     public let recommendedPlatform: Platform
 
-    public enum Platform {
+    public enum Platform: Sendable {
         case iOS
         case macOS
         case both

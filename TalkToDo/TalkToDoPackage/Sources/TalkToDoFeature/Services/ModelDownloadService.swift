@@ -13,7 +13,7 @@ public enum ModelDownloadError: Error, Sendable {
     case underlying(String)
 }
 
-public struct ModelDownloadService {
+public struct ModelDownloadService: Sendable {
     public init() {}
 
     public func downloadModel(

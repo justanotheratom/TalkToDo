@@ -2,7 +2,7 @@ import AVFoundation
 import Speech
 
 @available(iOS 18.0, macOS 15.0, *)
-actor SpeechRecognitionService {
+public actor SpeechRecognitionService {
     enum AuthorizationStatus: Equatable {
         case notDetermined
         case authorized
@@ -65,7 +65,7 @@ actor SpeechRecognitionService {
     private var latestTranscription: String?
     private var localeProvider: () -> Locale
 
-    init(localeProvider: @escaping () -> Locale = { Locale.current }) {
+    public init(localeProvider: @escaping () -> Locale = { Locale.current }) {
         self.localeProvider = localeProvider
     }
 

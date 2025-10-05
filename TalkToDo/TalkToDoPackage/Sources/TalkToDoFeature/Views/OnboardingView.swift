@@ -211,24 +211,6 @@ private struct FailedStep: View {
     }
 }
 
-#if os(iOS)
-import UIKit
-typealias PlatformColor = UIColor
-#else
-import AppKit
-typealias PlatformColor = NSColor
-#endif
-
-private extension Color {
-    init(uiColor: PlatformColor) {
-        #if os(iOS)
-        self.init(uiColor: uiColor)
-        #else
-        self.init(nsColor: uiColor)
-        #endif
-    }
-}
-
 #Preview("Welcome") {
     let store = OnboardingStore(
         voiceInputStore: VoiceInputStore(),

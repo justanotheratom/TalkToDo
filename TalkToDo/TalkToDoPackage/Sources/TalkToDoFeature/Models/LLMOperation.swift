@@ -2,7 +2,7 @@ import Foundation
 
 /// LLM-generated operation plan (structured output from LFM2)
 @available(iOS 18.0, macOS 15.0, *)
-public struct OperationPlan: Codable {
+public struct OperationPlan: Codable, Sendable {
     public let operations: [Operation]
 
     public init(operations: [Operation]) {
@@ -12,7 +12,7 @@ public struct OperationPlan: Codable {
 
 /// Single node operation from LLM
 @available(iOS 18.0, macOS 15.0, *)
-public struct Operation: Codable {
+public struct Operation: Codable, Sendable {
     public let type: String
     public let nodeId: String
     public let title: String?
