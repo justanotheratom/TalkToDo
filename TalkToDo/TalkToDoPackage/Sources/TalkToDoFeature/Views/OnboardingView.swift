@@ -12,8 +12,13 @@ public struct OnboardingView: View {
 
     public var body: some View {
         ZStack {
+            #if os(iOS)
             Color(uiColor: .systemBackground)
                 .ignoresSafeArea()
+            #else
+            Color(.windowBackgroundColor)
+                .ignoresSafeArea()
+            #endif
 
             VStack(spacing: 32) {
                 switch store.state {

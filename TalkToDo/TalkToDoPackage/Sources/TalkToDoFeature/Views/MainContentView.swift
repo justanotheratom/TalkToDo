@@ -65,16 +65,28 @@ public struct MainContentView: View {
                         onPressDown: handleMicrophonePress,
                         onPressUp: handleMicrophoneRelease
                     )
+                    #if os(iOS)
                     .background(Color(uiColor: .systemBackground))
+                    #else
+                    .background(Color(.windowBackgroundColor))
+                    #endif
                 }
             }
             .navigationTitle("TalkToDo")
             .toolbar {
+                #if os(iOS)
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: { showSettings = true }) {
                         Image(systemName: "gearshape")
                     }
                 }
+                #else
+                ToolbarItem(placement: .automatic) {
+                    Button(action: { showSettings = true }) {
+                        Image(systemName: "gearshape")
+                    }
+                }
+                #endif
             }
             .sheet(isPresented: $showSettings) {
                 SettingsView()
@@ -274,24 +286,6 @@ public struct MainContentView: View {
         withAnimation {
             showUndoPill = false
         }
-    }
-}
-
-#if os(iOS)
-import UIKit
-typealias PlatformColor = UIColor
-#else
-import AppKit
-typealias PlatformColor = NSColor
-#endif
-
-extension Color {
-    init(uiColor: PlatformColor) {
-        #if os(iOS)
-        self.init(uiColor: uiColor)
-        #else
-        self.init(nsColor: uiColor)
-        #endif
     }
 }
 
