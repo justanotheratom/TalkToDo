@@ -17,6 +17,15 @@ public final class VoiceInputStore {
         case transcribing
         case disabled(message: String)
         case error(message: String)
+
+        public var allowsInteraction: Bool {
+            switch self {
+            case .idle, .error:
+                return true
+            case .recording, .transcribing, .disabled:
+                return false
+            }
+        }
     }
 
     public enum PermissionState: Equatable {

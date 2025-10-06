@@ -1,5 +1,9 @@
 import SwiftUI
 
+#if os(iOS)
+import UIKit
+#endif
+
 @available(iOS 18.0, macOS 15.0, *)
 public struct MicrophoneInputBar: View {
     let status: VoiceInputStore.Status
@@ -37,26 +41,45 @@ public struct MicrophoneInputBar: View {
             }
 
             // Microphone button
-            Button(action: {}) {
-                ZStack {
-                    Circle()
-                        .fill(micButtonColor)
-                        .frame(width: 60, height: 60)
-
-                    Image(systemName: micIconName)
-                        .font(.system(size: 24))
-                        .foregroundStyle(micIconColor)
-                }
-            }
-            .buttonStyle(MicButtonStyle(
-                isEnabled: isEnabled,
-                onPressDown: onPressDown,
-                onPressUp: onPressUp
-            ))
-            .disabled(!isEnabled)
-            .animation(.easeInOut(duration: 0.2), value: status)
+            microphoneButton
         }
         .padding(.vertical, 12)
+    }
+
+    private var microphoneButton: some View {
+        let longPressGesture = LongPressGesture(minimumDuration: 0.3)
+            .onEnded { _ in
+                guard isEnabled, status.allowsInteraction else { return }
+#if os(iOS)
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+#endif
+                onPressDown()
+            }
+
+        let dragGesture = DragGesture(minimumDistance: 0)
+            .onEnded { _ in
+                if status == .recording {
+#if os(iOS)
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+#endif
+                    onPressUp()
+                }
+            }
+
+        return ZStack {
+            Circle()
+                .fill(micButtonColor)
+                .frame(width: 60, height: 60)
+
+            Image(systemName: micIconName)
+                .font(.system(size: 24))
+                .foregroundStyle(micIconColor)
+        }
+        .scaleEffect(status == .recording ? 1.05 : 1.0)
+        .opacity(isEnabled ? 1.0 : 0.5)
+        .contentShape(Circle())
+        .simultaneousGesture(longPressGesture.sequenced(before: dragGesture))
+        .animation(.spring(response: 0.35, dampingFraction: 0.7), value: status)
     }
 
     // MARK: - Styling
@@ -94,28 +117,6 @@ public struct MicrophoneInputBar: View {
         case .disabled, .error:
             return .gray
         }
-    }
-}
-
-/// Custom button style for press-and-hold behavior
-@available(iOS 18.0, macOS 15.0, *)
-struct MicButtonStyle: ButtonStyle {
-    let isEnabled: Bool
-    let onPressDown: () -> Void
-    let onPressUp: () -> Void
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
-            .onChange(of: configuration.isPressed) { oldValue, newValue in
-                if isEnabled {
-                    if newValue {
-                        onPressDown()
-                    } else if oldValue {
-                        onPressUp()
-                    }
-                }
-            }
     }
 }
 
