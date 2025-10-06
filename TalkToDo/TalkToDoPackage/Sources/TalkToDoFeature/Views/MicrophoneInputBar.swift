@@ -8,6 +8,7 @@ import UIKit
 public struct MicrophoneInputBar: View {
     let status: VoiceInputStore.Status
     let isEnabled: Bool
+    let liveTranscript: String?
     let onPressDown: () -> Void
     let onPressUp: () -> Void
     let onSendText: (String) -> Void
@@ -19,12 +20,14 @@ public struct MicrophoneInputBar: View {
     public init(
         status: VoiceInputStore.Status,
         isEnabled: Bool,
+        liveTranscript: String?,
         onPressDown: @escaping () -> Void,
         onPressUp: @escaping () -> Void,
         onSendText: @escaping (String) -> Void
     ) {
         self.status = status
         self.isEnabled = isEnabled
+        self.liveTranscript = liveTranscript
         self.onPressDown = onPressDown
         self.onPressUp = onPressUp
         self.onSendText = onSendText
@@ -133,6 +136,14 @@ public struct MicrophoneInputBar: View {
         .overlay {
             RoundedRectangle(cornerRadius: 22)
                 .strokeBorder(Color(red: 1.0, green: 0.478, blue: 0.361), lineWidth: 0.5)
+        }
+        .overlay(alignment: .topLeading) {
+            if let transcript = liveTranscript,
+               !transcript.isEmpty,
+               status == .recording {
+                liveTranscriptOverlay(transcript: transcript)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
         }
         .contentShape(RoundedRectangle(cornerRadius: 22))
         .scaleEffect(status == .recording ? 1.02 : 1.0)
@@ -365,12 +376,28 @@ public struct MicrophoneInputBar: View {
             return nil
         }
     }
+
+    private func liveTranscriptOverlay(transcript: String) -> some View {
+        Text(transcript)
+            .font(.caption)
+            .fontWeight(.medium)
+            .foregroundStyle(.primary)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background {
+                Capsule()
+                    .fill(.thinMaterial)
+            }
+            .shadow(color: .black.opacity(0.1), radius: 6, y: 3)
+            .padding([.leading, .top], 6)
+    }
 }
 
 #Preview("Idle") {
     MicrophoneInputBar(
         status: .idle,
         isEnabled: true,
+        liveTranscript: nil,
         onPressDown: { print("Press down") },
         onPressUp: { print("Press up") },
         onSendText: { print("Send text: \($0)") }
@@ -381,6 +408,7 @@ public struct MicrophoneInputBar: View {
     MicrophoneInputBar(
         status: .recording,
         isEnabled: true,
+        liveTranscript: "Drafting your to-do...",
         onPressDown: {},
         onPressUp: {},
         onSendText: { _ in }
@@ -391,6 +419,7 @@ public struct MicrophoneInputBar: View {
     MicrophoneInputBar(
         status: .error(message: "Couldn't access the microphone"),
         isEnabled: false,
+        liveTranscript: nil,
         onPressDown: {},
         onPressUp: {},
         onSendText: { _ in }

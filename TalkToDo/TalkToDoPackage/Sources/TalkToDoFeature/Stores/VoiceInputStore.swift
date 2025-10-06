@@ -69,12 +69,15 @@ public final class VoiceInputStore {
     public var speechPermissionState: PermissionState = .unknown
     public var microphonePermissionState: PermissionState = .unknown
     public var errorMessage: String?
+    public var liveTranscript: String?
 
     // MARK: - Dependencies
 
     @ObservationIgnored private let speechService: SpeechRecognitionService
     @ObservationIgnored private var recordingStartTime: Date?
     @ObservationIgnored private var errorDismissTask: Task<Void, Never>?
+    @ObservationIgnored private var transcriptHandler: ((String) -> Void)?
+    @ObservationIgnored private var transcriptPollingTask: Task<Void, Never>?
 
     // MARK: - Initialization
 
@@ -84,6 +87,7 @@ public final class VoiceInputStore {
 
     deinit {
         errorDismissTask?.cancel()
+        transcriptPollingTask?.cancel()
     }
 
     // MARK: - Computed Properties
@@ -208,12 +212,15 @@ public final class VoiceInputStore {
 
         do {
             try await speechService.start(locale: Locale.current)
+            transcriptHandler = onTranscript
             isRecording = true
             recordingStartTime = Date()
             clearError()
+            startTranscriptPolling()
 
             AppLogger.speech().log(event: "voice:recordingStarted", data: [:])
         } catch {
+            transcriptHandler = nil
             await handleSpeechError(error)
         }
     }
@@ -224,9 +231,13 @@ public final class VoiceInputStore {
             return
         }
 
+        let finalHandler = transcriptHandler ?? onTranscript
+        transcriptHandler = nil
+
         AppLogger.speech().log(event: "voice:finishRecordingStarted", data: [:])
         isRecording = false
         isTranscribing = true
+        stopTranscriptPolling()
 
         do {
             AppLogger.speech().log(event: "voice:stoppingRecognition", data: [:])
@@ -275,9 +286,10 @@ public final class VoiceInputStore {
             AppLogger.speech().log(event: "voice:transcriptReceived", data: [
                 "characters": cleaned.count
             ])
+            liveTranscript = nil
 
             AppLogger.speech().log(event: "voice:callingOnTranscript", data: [:])
-            onTranscript(cleaned)
+            finalHandler(cleaned)
             AppLogger.speech().log(event: "voice:onTranscriptCalled", data: [:])
         } catch {
             AppLogger.speech().log(event: "voice:finishRecordingError", data: [
@@ -290,9 +302,41 @@ public final class VoiceInputStore {
 
     public func cancelRecording() async {
         recordingStartTime = nil
+        stopTranscriptPolling()
+        transcriptHandler = nil
+        liveTranscript = nil
         await speechService.cancel()
         isRecording = false
         isTranscribing = false
+    }
+
+    private func startTranscriptPolling() {
+        transcriptPollingTask?.cancel()
+        transcriptPollingTask = Task { [weak self] in
+            guard let self else { return }
+            await self.pollTranscriptLoop()
+        }
+    }
+
+    @MainActor
+    private func pollTranscriptLoop() async {
+        while !Task.isCancelled {
+            let transcript = await speechService.getCurrentTranscript()
+            if let transcript, !transcript.isEmpty {
+                if liveTranscript != transcript {
+                    liveTranscript = transcript
+                }
+            } else if liveTranscript != nil {
+                liveTranscript = nil
+            }
+            try? await Task.sleep(for: .milliseconds(120))
+        }
+    }
+
+    private func stopTranscriptPolling() {
+        transcriptPollingTask?.cancel()
+        transcriptPollingTask = nil
+        liveTranscript = nil
     }
 
     // MARK: - Error Handling

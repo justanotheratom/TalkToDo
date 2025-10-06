@@ -88,6 +88,7 @@ public struct MainContentView: View {
                     MicrophoneInputBar(
                         status: voiceInputStore.status,
                         isEnabled: voiceInputStore.isEnabled,
+                        liveTranscript: voiceInputStore.liveTranscript,
                         onPressDown: handleMicrophonePress,
                         onPressUp: handleMicrophoneRelease,
                         onSendText: handleTextInput
