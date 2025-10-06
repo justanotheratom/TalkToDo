@@ -37,6 +37,8 @@ targets:
       properties:
         CFBundleDisplayName: TalkToDo
         UILaunchScreen: {}
+        UIBackgroundModes:
+          - remote-notification
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationLandscapeLeft
