@@ -11,7 +11,7 @@ public struct GeminiAPIClient: Sendable {
         }
     }
 
-    public enum ClientError: Error, LocalizedError {
+    public enum ClientError: Error, LocalizedError, Equatable {
         case missingAPIKey
         case missingAudioFile
         case notImplemented
