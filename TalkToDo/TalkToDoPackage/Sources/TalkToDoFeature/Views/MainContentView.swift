@@ -165,7 +165,7 @@ public struct MainContentView: View {
         }
 
         // Initialize coordinator
-        let pipeline = OnDeviceVoicePipeline(llmService: llmService)
+        let pipeline = AnyVoiceProcessingPipeline(OnDeviceVoicePipeline(llmService: llmService))
         voiceCoordinator = VoiceInputCoordinator(
             eventStore: store,
             pipeline: pipeline,

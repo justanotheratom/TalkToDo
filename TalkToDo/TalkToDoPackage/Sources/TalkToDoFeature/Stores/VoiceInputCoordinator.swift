@@ -13,12 +13,12 @@ public final class VoiceInputCoordinator {
     public var processingTranscript: String?
 
     @ObservationIgnored private let eventStore: EventStore
-    @ObservationIgnored private let pipeline: VoiceProcessingPipeline
+    @ObservationIgnored private let pipeline: AnyVoiceProcessingPipeline
     @ObservationIgnored private let undoManager: UndoManager
 
     public init(
         eventStore: EventStore,
-        pipeline: VoiceProcessingPipeline,
+        pipeline: AnyVoiceProcessingPipeline,
         undoManager: UndoManager
     ) {
         self.eventStore = eventStore
