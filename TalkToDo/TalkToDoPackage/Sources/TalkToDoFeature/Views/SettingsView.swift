@@ -1,14 +1,18 @@
 import SwiftUI
+import SwiftData
 import TalkToDoShared
 
 @available(iOS 18.0, macOS 15.0, *)
 public struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.eventStore) private var eventStore
+    @Environment(\.undoManager) private var undoManager
 
     @State private var selectedModelSlug = ModelCatalog.defaultModel.slug
     @State private var downloadStates: [String: DownloadState] = [:]
     @State private var storage = ModelStorageService()
     @State private var downloadService = ModelDownloadService()
+    @State private var showDeleteDataAlert = false
 
     public init() {}
 
@@ -29,6 +33,14 @@ public struct SettingsView: View {
                 }
 
                 Section {
+                    Button(role: .destructive, action: { showDeleteDataAlert = true }) {
+                        Label("Delete All User Data", systemImage: "trash")
+                    }
+                } footer: {
+                    Text("This will permanently delete all your to-do items and reset the app.")
+                }
+
+                Section {
                     HStack {
                         Text("Version")
                         Spacer()
@@ -38,6 +50,12 @@ public struct SettingsView: View {
                 }
             }
             .navigationTitle("Settings")
+            .alert("Delete All Data?", isPresented: $showDeleteDataAlert) {
+                Button("Cancel", role: .cancel) {}
+                Button("Delete", role: .destructive, action: deleteAllUserData)
+            } message: {
+                Text("This will permanently delete all your to-do items. This action cannot be undone.")
+            }
             .toolbar {
                 #if os(iOS)
                 ToolbarItem(placement: .topBarTrailing) {
@@ -100,6 +118,26 @@ public struct SettingsView: View {
             downloadStates[model.slug] = .notStarted
         } catch {
             AppLogger.ui().logError(event: "settings:deleteFailed", error: error)
+        }
+    }
+
+    // MARK: - Data Management
+
+    private func deleteAllUserData() {
+        guard let eventStore = eventStore else {
+            AppLogger.ui().log(event: "settings:deleteAllDataSkipped", data: ["reason": "eventStoreNil"])
+            return
+        }
+
+        do {
+            try eventStore.deleteAllData()
+            undoManager?.clearHistory()
+            AppLogger.ui().log(event: "settings:allDataDeleted", data: [:])
+
+            // Dismiss settings after deletion
+            dismiss()
+        } catch {
+            AppLogger.ui().logError(event: "settings:deleteAllDataFailed", error: error)
         }
     }
 }

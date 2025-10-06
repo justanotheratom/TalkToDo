@@ -34,14 +34,17 @@ public final class VoiceInputCoordinator {
     ) async {
         AppLogger.ui().log(event: "voiceCoordinator:processTranscriptStarted", data: [
             "transcriptLength": transcript.count,
-            "hasNodeContext": nodeContext != nil
+            "hasNodeContext": nodeContext != nil,
+            "transcript": transcript
         ])
         isProcessing = true
         processingError = nil
 
         do {
             // Generate operations from LLM
-            AppLogger.ui().log(event: "voiceCoordinator:callingLLM", data: [:])
+            AppLogger.ui().log(event: "voiceCoordinator:callingLLM", data: [
+                "transcript": transcript
+            ])
             let plan = try await llmService.generateOperations(
                 from: transcript,
                 nodeContext: nodeContext
@@ -90,6 +93,7 @@ public final class VoiceInputCoordinator {
         batchId: String
     ) throws -> [NodeEvent] {
         var events: [NodeEvent] = []
+        var createdNodeIds = Set<String>()
 
         for operation in operations {
             guard let operationType = operation.operationType else {
@@ -108,22 +112,50 @@ public final class VoiceInputCoordinator {
                     continue
                 }
 
-                // Generate unique ID instead of using LLM's potentially duplicate ID
-                let uniqueNodeId = NodeID.generate()
+                // Validate parentId if specified
+                if let parentId = operation.parentId, !createdNodeIds.contains(parentId) {
+                    AppLogger.ui().log(event: "voiceCoordinator:invalidParentId", data: [
+                        "nodeId": operation.nodeId,
+                        "parentId": parentId,
+                        "title": title,
+                        "reason": "Parent ID does not exist in earlier operations - setting to null"
+                    ])
+                    // Set parentId to null to make it a root node instead
+                    let uniqueNodeId = NodeID.generate()
+                    createdNodeIds.insert(uniqueNodeId)
 
-                let payload = InsertNodePayload(
-                    nodeId: uniqueNodeId,
-                    title: title,
-                    parentId: operation.parentId,
-                    position: operation.position ?? 0
-                )
-                let payloadData = try JSONEncoder().encode(payload)
-                let event = NodeEvent(
-                    type: .insertNode,
-                    payload: payloadData,
-                    batchId: batchId
-                )
-                events.append(event)
+                    let payload = InsertNodePayload(
+                        nodeId: uniqueNodeId,
+                        title: title,
+                        parentId: nil,
+                        position: operation.position ?? 0
+                    )
+                    let payloadData = try JSONEncoder().encode(payload)
+                    let event = NodeEvent(
+                        type: .insertNode,
+                        payload: payloadData,
+                        batchId: batchId
+                    )
+                    events.append(event)
+                } else {
+                    // Generate unique ID instead of using LLM's potentially duplicate ID
+                    let uniqueNodeId = NodeID.generate()
+                    createdNodeIds.insert(uniqueNodeId)
+
+                    let payload = InsertNodePayload(
+                        nodeId: uniqueNodeId,
+                        title: title,
+                        parentId: operation.parentId,
+                        position: operation.position ?? 0
+                    )
+                    let payloadData = try JSONEncoder().encode(payload)
+                    let event = NodeEvent(
+                        type: .insertNode,
+                        payload: payloadData,
+                        batchId: batchId
+                    )
+                    events.append(event)
+                }
 
             case .renameNode:
                 guard let newTitle = operation.title else {

@@ -60,7 +60,8 @@ public actor LLMInferenceService {
     /// Generate operations from natural language transcript
     public func generateOperations(
         from transcript: String,
-        nodeContext: NodeContext?
+        nodeContext: NodeContext?,
+        retryCount: Int = 0
     ) async throws -> OperationPlan {
         guard let conversation = globalConversation else {
             throw LLMError.modelNotLoaded
@@ -102,6 +103,42 @@ public actor LLMInferenceService {
         do {
             let jsonData = cleanedJSON.data(using: .utf8) ?? Data()
             let plan = try JSONDecoder().decode(OperationPlan.self, from: jsonData)
+
+            // Validate parent references
+            let validationError = validateParentReferences(operations: plan.operations)
+            if let error = validationError {
+                AppLogger.llm().log(event: "llm:validationFailed", data: [
+                    "error": error,
+                    "retryCount": retryCount
+                ])
+
+                // Retry once with feedback
+                if retryCount < 1 {
+                    let feedbackMessage = """
+                    ERROR: Your JSON has invalid parent references. \(error)
+
+                    REMEMBER: You can ONLY use a nodeId as parentId if that exact nodeId was created in an EARLIER operation in the array. Parent nodes must come FIRST.
+
+                    Please regenerate the COMPLETE JSON with all operations, fixing the parent references.
+                    """
+
+                    AppLogger.llm().log(event: "llm:retryingWithFeedback", data: [
+                        "feedback": feedbackMessage
+                    ])
+
+                    return try await generateOperations(
+                        from: feedbackMessage,
+                        nodeContext: nodeContext,
+                        retryCount: retryCount + 1
+                    )
+                } else {
+                    AppLogger.llm().log(event: "llm:validationFailedAfterRetry", data: [
+                        "response": cleanedJSON
+                    ])
+                    // Continue with invalid plan - VoiceInputCoordinator will fix it
+                }
+            }
+
             AppLogger.llm().log(event: "llm:operationsParsed", data: [
                 "operationCount": plan.operations.count,
                 "response": cleanedJSON
@@ -113,6 +150,26 @@ public actor LLMInferenceService {
             ])
             throw LLMError.invalidJSONResponse(fullResponse)
         }
+    }
+
+    /// Validate that all parent IDs reference earlier operations
+    private func validateParentReferences(operations: [Operation]) -> String? {
+        var createdIds = Set<String>()
+        var invalidRefs: [(nodeId: String, parentId: String)] = []
+
+        for operation in operations {
+            if let parentId = operation.parentId, !createdIds.contains(parentId) {
+                invalidRefs.append((operation.nodeId, parentId))
+            }
+            createdIds.insert(operation.nodeId)
+        }
+
+        if !invalidRefs.isEmpty {
+            let examples = invalidRefs.prefix(3).map { "nodeId '\($0.nodeId)' references non-existent parentId '\($0.parentId)'" }.joined(separator: "; ")
+            return "Found \(invalidRefs.count) invalid parent reference(s): \(examples)"
+        }
+
+        return nil
     }
 
     // MARK: - System Prompt
@@ -167,10 +224,16 @@ public actor LLMInferenceService {
             2. The "type" field MUST ALWAYS be "insertNode" - NEVER create custom types
             3. The user's speech becomes the "title" field - do NOT interpret it as an operation type
             4. Generate unique 4-character lowercase hex IDs (e.g., "a3f2", "b7e1") for each node
-            5. Use parentId: null for root level items
-            6. Position is 0-based index in parent's children
-            7. Keep titles concise (under 50 chars)
-            8. Create flat lists unless hierarchy is explicit (e.g., "Project X: task A, task B")
+            5. Position is 0-based index (0, 1, 2, 3...)
+            6. Keep titles concise (under 50 chars)
+            7. Detect hierarchy patterns:
+               - "X and Y and Z" → flat list (3 separate root items)
+               - "Buy/Get X, Y, Z from PLACE" → parent "Buy/Get from PLACE" with children X, Y, Z
+               - "Do X: A, B, C" → parent "Do X" with children A, B, C
+               - Just a single action → one root item
+            8. IMPORTANT: When creating hierarchies, the parent node MUST be the FIRST operation in the array
+            9. CRITICAL: You can ONLY use a nodeId as parentId if that nodeId was already created in an EARLIER operation
+            10. NEVER invent parent IDs - if you reference a parentId, that exact nodeId must appear earlier in the operations array
 
             Required JSON schema (type is ALWAYS "insertNode"):
             {
@@ -185,14 +248,27 @@ public actor LLMInferenceService {
               ]
             }
 
-            Examples showing type is ALWAYS "insertNode":
+            Examples:
 
-            Input: "Buy milk and cookies"
+            Input: "Call dentist and schedule haircut and pay rent"
             Output:
             {
               "operations": [
-                {"type": "insertNode", "nodeId": "a1b2", "title": "Buy milk", "parentId": null, "position": 0},
-                {"type": "insertNode", "nodeId": "c3d4", "title": "Buy cookies", "parentId": null, "position": 1}
+                {"type": "insertNode", "nodeId": "a1b2", "title": "Call dentist", "parentId": null, "position": 0},
+                {"type": "insertNode", "nodeId": "c3d4", "title": "Schedule haircut", "parentId": null, "position": 1},
+                {"type": "insertNode", "nodeId": "e5f6", "title": "Pay rent", "parentId": null, "position": 2}
+              ]
+            }
+
+            Input: "Buy milk eggs butter and lemon from the supermarket"
+            Output:
+            {
+              "operations": [
+                {"type": "insertNode", "nodeId": "p1a2", "title": "Buy from the supermarket", "parentId": null, "position": 0},
+                {"type": "insertNode", "nodeId": "c1b2", "title": "Milk", "parentId": "p1a2", "position": 0},
+                {"type": "insertNode", "nodeId": "c3d4", "title": "Eggs", "parentId": "p1a2", "position": 1},
+                {"type": "insertNode", "nodeId": "c5e6", "title": "Butter", "parentId": "p1a2", "position": 2},
+                {"type": "insertNode", "nodeId": "c7f8", "title": "Lemon", "parentId": "p1a2", "position": 3}
               ]
             }
 
@@ -200,17 +276,19 @@ public actor LLMInferenceService {
             Output:
             {
               "operations": [
-                {"type": "insertNode", "nodeId": "e5f6", "title": "Pick up car from body shop", "parentId": null, "position": 0}
+                {"type": "insertNode", "nodeId": "c5d6", "title": "Pick up car from body shop", "parentId": null, "position": 0}
               ]
             }
 
-            Input: "Weekend plans: hiking Saturday, movie Sunday"
+            Input: "Pack list for the trip: shoes socks clothes toiletries"
             Output:
             {
               "operations": [
-                {"type": "insertNode", "nodeId": "a7b8", "title": "Weekend plans", "parentId": null, "position": 0},
-                {"type": "insertNode", "nodeId": "c9d0", "title": "Hiking Saturday", "parentId": "a7b8", "position": 0},
-                {"type": "insertNode", "nodeId": "e1f2", "title": "Movie Sunday", "parentId": "a7b8", "position": 1}
+                {"type": "insertNode", "nodeId": "p1a2", "title": "Pack list for the trip", "parentId": null, "position": 0},
+                {"type": "insertNode", "nodeId": "s3b4", "title": "Shoes", "parentId": "p1a2", "position": 0},
+                {"type": "insertNode", "nodeId": "s5c6", "title": "Socks", "parentId": "p1a2", "position": 1},
+                {"type": "insertNode", "nodeId": "c7d8", "title": "Clothes", "parentId": "p1a2", "position": 2},
+                {"type": "insertNode", "nodeId": "t9e0", "title": "Toiletries", "parentId": "p1a2", "position": 3}
               ]
             }
 
@@ -224,7 +302,20 @@ public actor LLMInferenceService {
     /// Extract JSON object from response, removing any surrounding text
     private func extractJSON(from response: String) -> String {
         // Trim whitespace
-        let trimmed = response.trimmingCharacters(in: .whitespacesAndNewlines)
+        var trimmed = response.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Strip markdown code fences if present (e.g., ```json ... ```)
+        if trimmed.hasPrefix("```") {
+            // Remove opening fence
+            if let firstNewline = trimmed.firstIndex(of: "\n") {
+                trimmed = String(trimmed[trimmed.index(after: firstNewline)...])
+            }
+            // Remove closing fence
+            if trimmed.hasSuffix("```") {
+                trimmed = String(trimmed.dropLast(3))
+            }
+            trimmed = trimmed.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
 
         // If it already starts with {, try to find the matching closing brace
         if trimmed.hasPrefix("{") {

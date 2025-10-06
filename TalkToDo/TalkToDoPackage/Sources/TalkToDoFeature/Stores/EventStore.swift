@@ -1,10 +1,12 @@
 import Foundation
 import SwiftData
+import SwiftUI
 import TalkToDoShared
 
 /// Store managing the event log and coordinating with NodeTree
 @available(iOS 18.0, macOS 15.0, *)
 @MainActor
+@Observable
 public final class EventStore {
     private let modelContext: ModelContext
     private let nodeTree: NodeTree
@@ -110,4 +112,22 @@ public final class EventStore {
             "nodeCount": nodeTree.allNodeCount()
         ])
     }
+
+    // MARK: - Data Management
+
+    /// Delete all events and reset the node tree
+    public func deleteAllData() throws {
+        try modelContext.delete(model: NodeEvent.self)
+        try modelContext.save()
+        nodeTree.rebuildFromEvents([])
+
+        AppLogger.data().log(event: "eventStore:deleteAllData", data: [:])
+    }
+}
+
+// MARK: - Environment Key
+
+@available(iOS 18.0, macOS 15.0, *)
+extension EnvironmentValues {
+    @Entry public var eventStore: EventStore? = nil
 }

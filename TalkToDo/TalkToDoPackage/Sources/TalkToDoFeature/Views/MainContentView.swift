@@ -33,6 +33,8 @@ public struct MainContentView: View {
                 mainContent
             }
         }
+        .environment(\.eventStore, eventStore)
+        .environment(\.undoManager, undoManager)
         .task {
             await initializeApp()
         }
@@ -140,6 +142,8 @@ public struct MainContentView: View {
         // Load events and rebuild tree
         do {
             try store.initializeNodeTree()
+            // Clear undo history - events loaded from disk are not undoable
+            undoManager.clearHistory()
             AppLogger.ui().log(event: "app:initialized", data: [
                 "nodeCount": nodeTree.allNodeCount()
             ])

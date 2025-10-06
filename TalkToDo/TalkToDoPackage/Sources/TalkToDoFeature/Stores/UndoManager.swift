@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 import Observation
 import TalkToDoShared
 
@@ -59,4 +60,11 @@ public final class UndoManager {
         batchHistory.removeAll()
         AppLogger.data().log(event: "undo:clearHistory", data: [:])
     }
+}
+
+// MARK: - Environment Key
+
+@available(iOS 18.0, macOS 15.0, *)
+extension EnvironmentValues {
+    @Entry public var undoManager: UndoManager? = nil
 }
