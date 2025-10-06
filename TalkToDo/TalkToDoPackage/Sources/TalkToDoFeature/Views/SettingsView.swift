@@ -41,6 +41,10 @@ public struct SettingsView: View {
                 }
 
                 Section {
+                    NavigationLink("Attributions") {
+                        AttributionsView()
+                    }
+
                     HStack {
                         Text("Version")
                         Spacer()
@@ -50,6 +54,9 @@ public struct SettingsView: View {
                 }
             }
             .navigationTitle("Settings")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
             .alert("Delete All Data?", isPresented: $showDeleteDataAlert) {
                 Button("Cancel", role: .cancel) {}
                 Button("Delete", role: .destructive, action: deleteAllUserData)

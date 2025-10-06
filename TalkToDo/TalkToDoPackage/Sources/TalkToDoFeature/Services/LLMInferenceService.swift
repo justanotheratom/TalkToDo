@@ -221,21 +221,23 @@ public actor LLMInferenceService {
 
             CRITICAL RULES:
             1. Your response must be ONLY the JSON object. No text before or after.
-            2. The "type" field MUST ALWAYS be "insertNode" - NEVER create custom types
-            3. The user's speech becomes the "title" field - do NOT interpret it as an operation type
-            4. Generate unique 4-character lowercase hex IDs (e.g., "a3f2", "b7e1") for each node
-            5. Position is 0-based index (0, 1, 2, 3...)
-            6. Keep titles concise (under 50 chars)
-            7. Detect hierarchy patterns:
+            2. EVERY operation MUST have ALL 5 fields: type, nodeId, title, parentId, position
+            3. The "type" field MUST ALWAYS be "insertNode" - NEVER create custom types
+            4. The user's speech becomes the "title" field - do NOT interpret it as an operation type
+            5. Generate unique 4-character lowercase hex IDs (e.g., "a3f2", "b7e1") for each node
+            6. Position is 0-based index (0, 1, 2, 3...)
+            7. Keep titles concise (under 50 chars)
+            8. Detect hierarchy patterns:
                - "X and Y and Z" → flat list (3 separate root items)
                - "Buy/Get X, Y, Z from PLACE" → parent "Buy/Get from PLACE" with children X, Y, Z
                - "Do X: A, B, C" → parent "Do X" with children A, B, C
                - Just a single action → one root item
-            8. IMPORTANT: When creating hierarchies, the parent node MUST be the FIRST operation in the array
-            9. CRITICAL: You can ONLY use a nodeId as parentId if that nodeId was already created in an EARLIER operation
-            10. NEVER invent parent IDs - if you reference a parentId, that exact nodeId must appear earlier in the operations array
+            9. IMPORTANT: When creating hierarchies, the parent node MUST be the FIRST operation in the array
+            10. CRITICAL: You can ONLY use a nodeId as parentId if that nodeId was already created in an EARLIER operation
+            11. NEVER invent parent IDs - if you reference a parentId, that exact nodeId must appear earlier in the operations array
+            12. DO NOT add explanatory comments or extra fields - just the required 5 fields per operation
 
-            Required JSON schema (type is ALWAYS "insertNode"):
+            Required JSON schema - ALL 5 fields are REQUIRED for EVERY operation:
             {
               "operations": [
                 {
@@ -292,7 +294,15 @@ public actor LLMInferenceService {
               ]
             }
 
-            REMEMBER: type is ALWAYS "insertNode". Return ONLY the JSON object.
+            Input: "I need to go get a haircut"
+            Output:
+            {
+              "operations": [
+                {"type": "insertNode", "nodeId": "h1a2", "title": "Get a haircut", "parentId": null, "position": 0}
+              ]
+            }
+
+            REMEMBER: ALL 5 fields required (type, nodeId, title, parentId, position). Type is ALWAYS "insertNode". Return ONLY the JSON object.
             """
         }
     }

@@ -52,10 +52,20 @@ public struct MainContentView: View {
                     onEdit: handleEdit
                 )
 
-                // Microphone input bar with undo feedback
+                // Microphone input bar with processing/undo feedback
                 VStack(spacing: 0) {
+                    // Processing indicator
+                    if let coordinator = voiceCoordinator,
+                       coordinator.isProcessing,
+                       let transcript = coordinator.processingTranscript {
+                        ProcessingPill(
+                            transcript: transcript,
+                            isError: coordinator.processingError != nil
+                        )
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
                     // Undo feedback overlay above microphone
-                    if let message = undoFeedbackMessage {
+                    else if let message = undoFeedbackMessage {
                         HStack {
                             Spacer()
                             Text(message)
@@ -78,7 +88,8 @@ public struct MainContentView: View {
                         status: voiceInputStore.status,
                         isEnabled: voiceInputStore.isEnabled,
                         onPressDown: handleMicrophonePress,
-                        onPressUp: handleMicrophoneRelease
+                        onPressUp: handleMicrophoneRelease,
+                        onSendText: handleTextInput
                     )
                     #if os(iOS)
                     .background(Color(uiColor: .systemBackground))
@@ -275,6 +286,19 @@ public struct MainContentView: View {
                     selectedNodeContext = nil
                 }
             }
+        }
+    }
+
+    private func handleTextInput(_ text: String) {
+        Task {
+            guard let coordinator = voiceCoordinator else { return }
+
+            await coordinator.processTranscript(
+                text,
+                nodeContext: selectedNodeContext
+            )
+
+            selectedNodeContext = nil
         }
     }
 

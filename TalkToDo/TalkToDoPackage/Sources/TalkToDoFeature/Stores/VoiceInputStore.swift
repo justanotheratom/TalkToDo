@@ -6,6 +6,32 @@ import TalkToDoShared
 import AVFoundation
 #endif
 
+// MARK: - Timeout Helper
+
+/// Executes an async operation with a timeout
+private func withTimeout<T: Sendable>(seconds: TimeInterval, operation: @escaping @Sendable () async throws -> T) async throws -> T {
+    try await withThrowingTaskGroup(of: T.self) { group in
+        group.addTask {
+            try await operation()
+        }
+
+        group.addTask {
+            try await Task.sleep(for: .seconds(seconds))
+            throw TimeoutError()
+        }
+
+        let result = try await group.next()!
+        group.cancelAll()
+        return result
+    }
+}
+
+private struct TimeoutError: Error, LocalizedError {
+    var errorDescription: String? {
+        "Operation timed out"
+    }
+}
+
 /// Store managing voice input UI state
 @available(iOS 18.0, macOS 15.0, *)
 @MainActor
@@ -13,6 +39,7 @@ import AVFoundation
 public final class VoiceInputStore {
     public enum Status: Equatable {
         case idle
+        case requestingPermission
         case recording
         case transcribing
         case disabled(message: String)
@@ -22,7 +49,7 @@ public final class VoiceInputStore {
             switch self {
             case .idle, .error:
                 return true
-            case .recording, .transcribing, .disabled:
+            case .requestingPermission, .recording, .transcribing, .disabled:
                 return false
             }
         }
@@ -38,6 +65,7 @@ public final class VoiceInputStore {
 
     public var isRecording = false
     public var isTranscribing = false
+    public var isRequestingPermission = false
     public var speechPermissionState: PermissionState = .unknown
     public var microphonePermissionState: PermissionState = .unknown
     public var errorMessage: String?
@@ -70,6 +98,9 @@ public final class VoiceInputStore {
         if isRecording {
             return .recording
         }
+        if isRequestingPermission {
+            return .requestingPermission
+        }
         if microphonePermissionState == .denied {
             return .disabled(message: "Enable microphone access in Settings")
         }
@@ -93,7 +124,9 @@ public final class VoiceInputStore {
         updateSpeechPermission(with: speechStatus)
 
         if speechStatus == .notDetermined {
+            isRequestingPermission = true
             let requested = await speechService.requestAuthorization()
+            isRequestingPermission = false
             updateSpeechPermission(with: requested)
         }
 
@@ -128,11 +161,13 @@ public final class VoiceInputStore {
             return
         }
 
+        isRequestingPermission = true
         let granted = await withCheckedContinuation { continuation in
             AVAudioApplication.requestRecordPermission { granted in
                 continuation.resume(returning: granted)
             }
         }
+        isRequestingPermission = false
 
         microphonePermissionState = granted ? .granted : .denied
     }
@@ -195,7 +230,12 @@ public final class VoiceInputStore {
 
         do {
             AppLogger.speech().log(event: "voice:stoppingRecognition", data: [:])
-            let transcript = try await speechService.stop()
+
+            // Add timeout to prevent infinite hang
+            let transcript = try await withTimeout(seconds: 10) { [speechService] in
+                try await speechService.stop()
+            }
+
             AppLogger.speech().log(event: "voice:recognitionStopped", data: [
                 "hasTranscript": transcript != nil
             ])

@@ -10,6 +10,7 @@ import TalkToDoShared
 public final class VoiceInputCoordinator {
     public var isProcessing = false
     public var processingError: String?
+    public var processingTranscript: String?
 
     @ObservationIgnored private let eventStore: EventStore
     @ObservationIgnored private let llmService: LLMInferenceService
@@ -39,6 +40,7 @@ public final class VoiceInputCoordinator {
         ])
         isProcessing = true
         processingError = nil
+        processingTranscript = transcript
 
         do {
             // Generate operations from LLM
@@ -74,6 +76,7 @@ public final class VoiceInputCoordinator {
             undoManager.recordBatch(batchId)
 
             isProcessing = false
+            processingTranscript = nil
 
             AppLogger.ui().log(event: "voiceCoordinator:processSuccess", data: [
                 "operationCount": plan.operations.count,
@@ -82,7 +85,17 @@ public final class VoiceInputCoordinator {
         } catch {
             isProcessing = false
             processingError = error.localizedDescription
+            // Keep transcript visible for error state
             AppLogger.ui().logError(event: "voiceCoordinator:processFailed", error: error)
+
+            // Clear error after delay
+            Task {
+                try? await Task.sleep(for: .seconds(3))
+                await MainActor.run {
+                    processingError = nil
+                    processingTranscript = nil
+                }
+            }
         }
     }
 

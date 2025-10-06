@@ -36,6 +36,7 @@ public struct EmptyStateView: View {
                     .fontWeight(.medium)
                     .foregroundStyle(.primary)
                     .multilineTextAlignment(.center)
+                    .padding(.horizontal, 12)
 
                 Text("Try: 'Weekend plans... hiking, groceries, call mom'")
                     .font(.subheadline)

@@ -10,43 +10,54 @@ public struct MicrophoneInputBar: View {
     let isEnabled: Bool
     let onPressDown: () -> Void
     let onPressUp: () -> Void
+    let onSendText: (String) -> Void
+
+    @State private var isTextInputMode = false
+    @State private var textInputContent = ""
+    @FocusState private var isTextFieldFocused: Bool
 
     public init(
         status: VoiceInputStore.Status,
         isEnabled: Bool,
         onPressDown: @escaping () -> Void,
-        onPressUp: @escaping () -> Void
+        onPressUp: @escaping () -> Void,
+        onSendText: @escaping (String) -> Void
     ) {
         self.status = status
         self.isEnabled = isEnabled
         self.onPressDown = onPressDown
         self.onPressUp = onPressUp
+        self.onSendText = onSendText
     }
 
     public var body: some View {
-        VStack(spacing: 8) {
-            // Feedback message
-            if case .error(let message) = status {
-                Text(message)
-                    .font(.caption)
-                    .foregroundStyle(.orange)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
-            } else if case .disabled(let message) = status {
-                Text(message)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
+        VStack(spacing: 0) {
+            HStack(spacing: 12) {
+                if isTextInputMode {
+                    textInputField
+                } else {
+                    inputButton
+                }
             }
-
-            // Microphone button
-            microphoneButton
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background {
+                inputBarBackground
+                    .ignoresSafeArea(edges: .bottom)
+            }
+            .overlay(alignment: .top) {
+                if let feedback = microphoneFeedback {
+                    statusBanner(text: feedback.text, color: feedback.color)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
         }
-        .padding(.vertical, 12)
     }
 
-    private var microphoneButton: some View {
+    // MARK: - Input Button (Voice)
+
+    @ViewBuilder
+    private var inputButton: some View {
         let longPressGesture = LongPressGesture(minimumDuration: 0.3)
             .onEnded { _ in
                 guard isEnabled, status.allowsInteraction else { return }
@@ -66,56 +77,292 @@ public struct MicrophoneInputBar: View {
                 }
             }
 
-        return ZStack {
-            Circle()
-                .fill(micButtonColor)
-                .frame(width: 60, height: 60)
+        let tapGesture = TapGesture()
+            .onEnded {
+                guard status != .recording, status != .transcribing else { return }
+#if os(iOS)
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+#endif
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    isTextInputMode = true
+                    isTextFieldFocused = true
+                }
+            }
 
-            Image(systemName: micIconName)
-                .font(.system(size: 24))
-                .foregroundStyle(micIconColor)
+        HStack(spacing: 10) {
+            ZStack {
+                Circle()
+                    .fill(microphoneBackgroundColor.gradient)
+                    .frame(width: 40, height: 40)
+                    .shadow(color: microphoneBackgroundColor.opacity(0.3), radius: 6, y: 3)
+
+                microphoneIcon
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundStyle(.white)
+                    .symbolEffect(.pulse, options: .repeating, isActive: status == .recording)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(microphonePrimaryText)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(microphonePrimaryColor)
+
+                if let detail = microphoneDetailText {
+                    Text(detail)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Spacer(minLength: 0)
+
+            if microphoneShowsProgress {
+                ProgressView()
+                    .controlSize(.small)
+                    .tint(microphoneBackgroundColor)
+            }
         }
-        .scaleEffect(status == .recording ? 1.05 : 1.0)
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background {
+            RoundedRectangle(cornerRadius: 22)
+                .fill(.ultraThinMaterial)
+                .shadow(color: .black.opacity(0.06), radius: 8, y: 3)
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 22)
+                .strokeBorder(Color(red: 1.0, green: 0.478, blue: 0.361), lineWidth: 0.5)
+        }
+        .contentShape(RoundedRectangle(cornerRadius: 22))
+        .scaleEffect(status == .recording ? 1.02 : 1.0)
         .opacity(isEnabled ? 1.0 : 0.5)
-        .contentShape(Circle())
+        .simultaneousGesture(tapGesture)
         .simultaneousGesture(longPressGesture.sequenced(before: dragGesture))
         .animation(.spring(response: 0.35, dampingFraction: 0.7), value: status)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(microphoneAccessibilityLabel)
+        .accessibilityHint(microphoneAccessibilityHint)
+        .accessibilityAddTraits(.isButton)
     }
 
-    // MARK: - Styling
+    // MARK: - Text Input Field
 
-    private var micButtonColor: Color {
+    @ViewBuilder
+    private var textInputField: some View {
+        HStack(spacing: 10) {
+            TextField("Type your message...", text: $textInputContent)
+                .focused($isTextFieldFocused)
+                .font(.subheadline)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background {
+                    RoundedRectangle(cornerRadius: 22)
+                        .fill(.ultraThinMaterial)
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 22)
+                        .strokeBorder(.quaternary, lineWidth: 0.5)
+                }
+                .onSubmit {
+                    sendTextInput()
+                }
+
+            CircularActionButton(
+                icon: "arrow.up",
+                style: .primary,
+                size: 40,
+                action: sendTextInput
+            )
+            .disabled(textInputContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .opacity(textInputContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.5 : 1.0)
+
+            Button(action: {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    isTextInputMode = false
+                    textInputContent = ""
+                    isTextFieldFocused = false
+                }
+            }) {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 24))
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private func sendTextInput() {
+        let trimmed = textInputContent.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+#if os(iOS)
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+#endif
+
+        onSendText(trimmed)
+        textInputContent = ""
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+            isTextInputMode = false
+            isTextFieldFocused = false
+        }
+    }
+
+    // MARK: - Supporting Views
+
+    private func statusBanner(text: String, color: Color) -> some View {
+        StatusBanner(text: text, color: color)
+            .offset(y: -10)
+    }
+
+    @ViewBuilder
+    private var inputBarBackground: some View {
+        Rectangle()
+            .fill(.regularMaterial)
+            .background {
+                LinearGradient(
+                    colors: [Color.black.opacity(0.01), Color.black.opacity(0.04)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            }
+            .shadow(color: .black.opacity(0.06), radius: 1, y: -1)
+    }
+
+    // MARK: - Microphone Styling
+
+    private var microphoneIcon: Image {
         switch status {
         case .idle:
-            return .accentColor
+            return Image(systemName: "mic.fill")
+        case .requestingPermission:
+            return Image(systemName: "exclamationmark.circle.fill")
+        case .recording:
+            return Image(systemName: "waveform")
+        case .transcribing:
+            return Image(systemName: "arrow.triangle.2.circlepath")
+        case .disabled:
+            return Image(systemName: "mic.slash.fill")
+        case .error:
+            return Image(systemName: "exclamationmark.triangle.fill")
+        }
+    }
+
+    private var microphoneBackgroundColor: Color {
+        switch status {
+        case .idle:
+            return Color(red: 1.0, green: 0.478, blue: 0.361) // Coral accent
+        case .requestingPermission:
+            return Color(red: 1.0, green: 0.6, blue: 0.4) // Lighter coral
+        case .recording:
+            return Color.red
+        case .transcribing:
+            return Color.purple
+        case .disabled:
+            return Color.gray
+        case .error:
+            return Color.orange
+        }
+    }
+
+    private var microphonePrimaryColor: Color {
+        switch status {
+        case .idle, .requestingPermission, .transcribing:
+            return .primary
         case .recording:
             return .red
-        case .transcribing:
-            return .orange
         case .disabled:
-            return .gray.opacity(0.3)
+            return .secondary
         case .error:
-            return .orange.opacity(0.5)
+            return .orange
         }
     }
 
-    private var micIconName: String {
+    private var microphonePrimaryText: String {
         switch status {
-        case .idle, .disabled, .error:
-            return "mic.fill"
+        case .idle:
+            return "Hold to talk, Tap to type"
+        case .requestingPermission:
+            return "Requesting access…"
         case .recording:
-            return "mic.fill"
+            return "Recording…"
         case .transcribing:
-            return "waveform"
+            return "Processing speech…"
+        case .disabled:
+            return "Microphone unavailable"
+        case .error:
+            return "Error occurred"
         }
     }
 
-    private var micIconColor: Color {
+    private var microphoneDetailText: String? {
         switch status {
-        case .idle, .recording, .transcribing:
-            return .white
-        case .disabled, .error:
-            return .gray
+        case .idle:
+            return nil
+        case .requestingPermission:
+            return "Grant permissions to continue"
+        case .recording:
+            return "Release to send"
+        case .transcribing:
+            return nil
+        case .disabled(let message):
+            return message.isEmpty ? nil : message
+        case .error(let message):
+            return message.isEmpty ? nil : message
+        }
+    }
+
+    private var microphoneShowsProgress: Bool {
+        switch status {
+        case .requestingPermission, .transcribing:
+            return true
+        default:
+            return false
+        }
+    }
+
+    private var microphoneAccessibilityLabel: String {
+        switch status {
+        case .idle:
+            return "Microphone button. Tap and hold to record your message or tap to type."
+        case .requestingPermission:
+            return "Requesting microphone permission."
+        case .recording:
+            return "Recording in progress. Release to send."
+        case .transcribing:
+            return "Transcribing your speech."
+        case .disabled:
+            return "Microphone unavailable."
+        case .error:
+            return "Microphone error. Tap and hold to retry."
+        }
+    }
+
+    private var microphoneAccessibilityHint: String {
+        switch status {
+        case .idle:
+            return "Double tap and hold to record, release to send. Or tap once to type."
+        case .recording:
+            return "Release to send your voice message."
+        case .requestingPermission:
+            return "Grant microphone permissions in Settings."
+        case .transcribing:
+            return "Please wait while processing completes."
+        case .disabled:
+            return "Enable microphone in Settings to use voice input."
+        case .error:
+            return "Tap and hold again to retry."
+        }
+    }
+
+    private var microphoneFeedback: (text: String, color: Color)? {
+        switch status {
+        case .disabled(let message):
+            return (message, .secondary)
+        case .error(let message):
+            return (message, .orange)
+        default:
+            return nil
         }
     }
 }
@@ -125,7 +372,8 @@ public struct MicrophoneInputBar: View {
         status: .idle,
         isEnabled: true,
         onPressDown: { print("Press down") },
-        onPressUp: { print("Press up") }
+        onPressUp: { print("Press up") },
+        onSendText: { print("Send text: \($0)") }
     )
 }
 
@@ -134,7 +382,8 @@ public struct MicrophoneInputBar: View {
         status: .recording,
         isEnabled: true,
         onPressDown: {},
-        onPressUp: {}
+        onPressUp: {},
+        onSendText: { _ in }
     )
 }
 
@@ -143,6 +392,7 @@ public struct MicrophoneInputBar: View {
         status: .error(message: "Couldn't access the microphone"),
         isEnabled: false,
         onPressDown: {},
-        onPressUp: {}
+        onPressUp: {},
+        onSendText: { _ in }
     )
 }
