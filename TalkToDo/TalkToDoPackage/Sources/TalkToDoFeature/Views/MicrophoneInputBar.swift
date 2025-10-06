@@ -64,7 +64,7 @@ public struct MicrophoneInputBar: View {
     private var micButtonColor: Color {
         switch status {
         case .idle:
-            return .blue
+            return .accentColor
         case .recording:
             return .red
         case .transcribing:

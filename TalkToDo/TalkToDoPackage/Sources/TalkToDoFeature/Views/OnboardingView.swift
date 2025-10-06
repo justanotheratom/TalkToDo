@@ -70,7 +70,7 @@ private struct WelcomeStep: View {
         VStack(spacing: 24) {
             Image(systemName: "mic.circle.fill")
                 .font(.system(size: 80))
-                .foregroundStyle(.blue)
+                .foregroundStyle(.accent)
 
             Text("Welcome to TalkToDo")
                 .font(.largeTitle)
@@ -88,7 +88,7 @@ private struct WelcomeStep: View {
                     .foregroundStyle(.white)
                     .frame(maxWidth: 300)
                     .padding()
-                    .background(Color.blue)
+                    .background(Color.accentColor)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
             }
             .padding(.top, 16)
@@ -173,7 +173,7 @@ private struct CompletedStep: View {
                     .foregroundStyle(.white)
                     .frame(maxWidth: 300)
                     .padding()
-                    .background(Color.blue)
+                    .background(Color.accentColor)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
             }
             .padding(.top, 16)

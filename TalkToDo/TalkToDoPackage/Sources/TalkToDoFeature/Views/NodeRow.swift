@@ -68,7 +68,7 @@ public struct NodeRow: View {
             Button(action: onEdit) {
                 Label("Edit", systemImage: "pencil")
             }
-            .tint(.blue)
+            .tint(.accent)
         }
         .padding(.vertical, 8)
         .background(Color.clear)

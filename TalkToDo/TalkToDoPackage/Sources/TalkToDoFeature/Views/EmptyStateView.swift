@@ -11,18 +11,18 @@ public struct EmptyStateView: View {
             // Pulsing mic icon
             ZStack {
                 Circle()
-                    .fill(Color.blue.opacity(0.1))
+                    .fill(Color.accentColor.opacity(0.1))
                     .frame(width: 100, height: 100)
                     .scaleEffect(isPulsing ? 1.2 : 1.0)
                     .opacity(isPulsing ? 0.0 : 1.0)
 
                 Circle()
-                    .fill(Color.blue.opacity(0.2))
+                    .fill(Color.accentColor.opacity(0.2))
                     .frame(width: 80, height: 80)
 
                 Image(systemName: "mic.fill")
                     .font(.system(size: 36))
-                    .foregroundStyle(.blue)
+                    .foregroundStyle(.accent)
             }
             .onAppear {
                 withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: false)) {

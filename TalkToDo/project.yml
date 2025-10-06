@@ -31,6 +31,7 @@ targets:
         SWIFT_VERSION: "5.9"
         ENABLE_PREVIEWS: YES
         CODE_SIGN_ENTITLEMENTS: iOS/TalkToDo.entitlements
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
     info:
       path: iOS/Info.plist
       properties:
@@ -64,6 +65,7 @@ targets:
         SWIFT_VERSION: "5.9"
         ENABLE_PREVIEWS: YES
         CODE_SIGN_ENTITLEMENTS: macOS/TalkToDo.entitlements
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
     info:
       path: macOS/Info.plist
       properties:
