@@ -81,9 +81,11 @@ public actor LLMInferenceService {
             throw LLMError.generationFailed(error.localizedDescription)
         }
 
-        // Parse JSON response
+        // Extract and parse JSON response
+        let cleanedJSON = extractJSON(from: fullResponse)
+
         do {
-            let jsonData = fullResponse.data(using: .utf8) ?? Data()
+            let jsonData = cleanedJSON.data(using: .utf8) ?? Data()
             let plan = try JSONDecoder().decode(OperationPlan.self, from: jsonData)
             AppLogger.llm().log(event: "llm:operationsParsed", data: [
                 "operationCount": plan.operations.count
@@ -142,51 +144,103 @@ public actor LLMInferenceService {
             """
         } else {
             return """
-            You are a hierarchical todo list assistant. Parse natural speech into structured todo operations.
+            Convert speech to todo list operations. Return ONLY valid JSON, no explanations.
 
-            Your task: Extract hierarchy from the user's speech and generate a JSON array of node operations.
-
-            Hierarchy extraction:
-            - Pauses indicate new items
-            - "Then", "also", "and" indicate siblings
-            - Indentation/nesting is implied by context (e.g., "Groceries: milk, bread")
-            - When in doubt, create a flat list
-
-            Available operations:
-            - insertNode: Add new node (requires nodeId, title, parentId?, position)
+            CRITICAL: Your response must be ONLY the JSON object below. Do not add ANY text before or after the JSON.
 
             Rules:
-            - Use 4-character hex IDs (e.g., "a3f2", "b7e1") for all new nodes
-            - parentId = null means root level
-            - position = index in parent's children (0-based)
-            - Return only valid JSON matching this schema:
+            1. Generate 4-character lowercase hex IDs (e.g., "a3f2", "b7e1") for new nodes
+            2. parentId null = root level
+            3. Position is 0-based index in parent's children
+            4. Keep titles concise (under 50 chars)
+            5. Create flat lists unless hierarchy is explicit (e.g., "Project X: task A, task B")
 
+            Required JSON schema:
             {
               "operations": [
                 {
                   "type": "insertNode",
                   "nodeId": "a3f2",
-                  "title": "Groceries",
+                  "title": "Task title here",
                   "parentId": null,
-                  "position": 0
-                },
-                {
-                  "type": "insertNode",
-                  "nodeId": "b7e1",
-                  "title": "milk",
-                  "parentId": "a3f2",
                   "position": 0
                 }
               ]
             }
 
-            Example: "Thanksgiving prep... groceries: turkey, cranberries... house: clean guest room"
-            → Creates parent "Thanksgiving prep" with two children "groceries" and "house", each with their own children
+            Examples:
+
+            Input: "Buy milk and cookies"
+            Output:
+            {
+              "operations": [
+                {"type": "insertNode", "nodeId": "a1b2", "title": "Buy milk", "parentId": null, "position": 0},
+                {"type": "insertNode", "nodeId": "c3d4", "title": "Buy cookies", "parentId": null, "position": 1}
+              ]
+            }
+
+            Input: "Weekend plans: hiking Saturday, movie Sunday"
+            Output:
+            {
+              "operations": [
+                {"type": "insertNode", "nodeId": "e5f6", "title": "Weekend plans", "parentId": null, "position": 0},
+                {"type": "insertNode", "nodeId": "a7b8", "title": "Hiking Saturday", "parentId": "e5f6", "position": 0},
+                {"type": "insertNode", "nodeId": "c9d0", "title": "Movie Sunday", "parentId": "e5f6", "position": 1}
+              ]
+            }
+
+            REMEMBER: Return ONLY the JSON object. No extra text.
             """
         }
     }
 
     // MARK: - Helpers
+
+    /// Extract JSON object from response, removing any surrounding text
+    private func extractJSON(from response: String) -> String {
+        // Trim whitespace
+        let trimmed = response.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // If it already starts with {, try to find the matching closing brace
+        if trimmed.hasPrefix("{") {
+            var braceCount = 0
+            var inString = false
+            var escapeNext = false
+
+            for (index, char) in trimmed.enumerated() {
+                if escapeNext {
+                    escapeNext = false
+                    continue
+                }
+
+                if char == "\\" {
+                    escapeNext = true
+                    continue
+                }
+
+                if char == "\"" && !escapeNext {
+                    inString.toggle()
+                    continue
+                }
+
+                if !inString {
+                    if char == "{" {
+                        braceCount += 1
+                    } else if char == "}" {
+                        braceCount -= 1
+                        if braceCount == 0 {
+                            // Found matching closing brace
+                            let endIndex = trimmed.index(trimmed.startIndex, offsetBy: index + 1)
+                            return String(trimmed[..<endIndex])
+                        }
+                    }
+                }
+            }
+        }
+
+        // Fallback: return original if no extraction worked
+        return trimmed
+    }
 
     private func validateModelFile(at url: URL) throws {
         let fm = FileManager.default
