@@ -32,22 +32,40 @@ public final class VoiceInputCoordinator {
         _ transcript: String,
         nodeContext: NodeContext? = nil
     ) async {
+        AppLogger.ui().log(event: "voiceCoordinator:processTranscriptStarted", data: [
+            "transcriptLength": transcript.count,
+            "hasNodeContext": nodeContext != nil
+        ])
         isProcessing = true
         processingError = nil
 
         do {
             // Generate operations from LLM
+            AppLogger.ui().log(event: "voiceCoordinator:callingLLM", data: [:])
             let plan = try await llmService.generateOperations(
                 from: transcript,
                 nodeContext: nodeContext
             )
+            AppLogger.ui().log(event: "voiceCoordinator:llmReturned", data: [
+                "operationCount": plan.operations.count
+            ])
 
             // Convert operations to events
             let batchId = NodeID.generateBatchID()
+            AppLogger.ui().log(event: "voiceCoordinator:convertingOperations", data: [
+                "operationCount": plan.operations.count
+            ])
             let events = try convertOperationsToEvents(plan.operations, batchId: batchId)
+            AppLogger.ui().log(event: "voiceCoordinator:operationsConverted", data: [
+                "eventCount": events.count
+            ])
 
             // Append to event store
+            AppLogger.ui().log(event: "voiceCoordinator:appendingEvents", data: [
+                "eventCount": events.count
+            ])
             try eventStore.appendEvents(events, batchId: batchId)
+            AppLogger.ui().log(event: "voiceCoordinator:eventsAppended", data: [:])
 
             // Record for undo
             undoManager.recordBatch(batchId)
@@ -90,8 +108,11 @@ public final class VoiceInputCoordinator {
                     continue
                 }
 
+                // Generate unique ID instead of using LLM's potentially duplicate ID
+                let uniqueNodeId = NodeID.generate()
+
                 let payload = InsertNodePayload(
-                    nodeId: operation.nodeId,
+                    nodeId: uniqueNodeId,
                     title: title,
                     parentId: operation.parentId,
                     position: operation.position ?? 0

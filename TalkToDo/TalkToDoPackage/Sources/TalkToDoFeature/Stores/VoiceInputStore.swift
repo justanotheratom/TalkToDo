@@ -184,18 +184,29 @@ public final class VoiceInputStore {
     }
 
     public func finishRecording(onTranscript: @escaping (String) -> Void) async {
-        guard isRecording else { return }
+        guard isRecording else {
+            AppLogger.speech().log(event: "voice:finishRecordingSkipped", data: ["reason": "notRecording"])
+            return
+        }
 
+        AppLogger.speech().log(event: "voice:finishRecordingStarted", data: [:])
         isRecording = false
         isTranscribing = true
 
         do {
+            AppLogger.speech().log(event: "voice:stoppingRecognition", data: [:])
             let transcript = try await speechService.stop()
+            AppLogger.speech().log(event: "voice:recognitionStopped", data: [
+                "hasTranscript": transcript != nil
+            ])
             isTranscribing = false
 
             // Validate duration
             if let start = recordingStartTime {
                 let duration = Date().timeIntervalSince(start)
+                AppLogger.speech().log(event: "voice:validateDuration", data: [
+                    "durationMs": Int(duration * 1000)
+                ])
                 if duration < 0.5 {
                     recordingStartTime = nil
                     setError("Hold the microphone a bit longer.")
@@ -210,6 +221,10 @@ public final class VoiceInputStore {
 
             // Validate transcript
             let cleaned = transcript?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            AppLogger.speech().log(event: "voice:validateTranscript", data: [
+                "length": cleaned.count,
+                "isEmpty": cleaned.isEmpty
+            ])
             guard !cleaned.isEmpty else {
                 setError("I didn't catch that. Try speaking again.")
                 AppLogger.speech().log(event: "voice:transcriptEmpty", data: [:])
@@ -221,8 +236,13 @@ public final class VoiceInputStore {
                 "characters": cleaned.count
             ])
 
+            AppLogger.speech().log(event: "voice:callingOnTranscript", data: [:])
             onTranscript(cleaned)
+            AppLogger.speech().log(event: "voice:onTranscriptCalled", data: [:])
         } catch {
+            AppLogger.speech().log(event: "voice:finishRecordingError", data: [
+                "error": error.localizedDescription
+            ])
             isTranscribing = false
             await handleSpeechError(error)
         }

@@ -7,6 +7,8 @@ import TalkToDoShared
 public actor LLMInferenceService {
     private var modelRunner: ModelRunner?
     private var currentModelURL: URL?
+    private var globalConversation: Conversation?
+    private var nodeContextConversation: Conversation?
 
     public init() {}
 
@@ -26,6 +28,18 @@ public actor LLMInferenceService {
             let runner = try await Leap.load(url: url)
             modelRunner = runner
             currentModelURL = url
+
+            // Initialize conversations with system prompts
+            let globalSystemPrompt = createSystemPrompt(nodeContext: nil)
+            let systemMessage = ChatMessage(role: .system, content: [.text(globalSystemPrompt)])
+            globalConversation = Conversation(
+                modelRunner: runner,
+                history: [systemMessage]
+            )
+
+            // We'll create node context conversation on-demand since system prompt varies
+            nodeContextConversation = nil
+
             AppLogger.llm().log(event: "llm:modelLoaded", data: ["path": url.path])
         } catch {
             AppLogger.llm().logError(event: "llm:loadFailed", error: error, data: ["path": url.path])
@@ -36,6 +50,8 @@ public actor LLMInferenceService {
     public func unloadModel() async {
         modelRunner = nil
         currentModelURL = nil
+        globalConversation = nil
+        nodeContextConversation = nil
         AppLogger.llm().log(event: "llm:modelUnloaded", data: [:])
     }
 
@@ -46,21 +62,20 @@ public actor LLMInferenceService {
         from transcript: String,
         nodeContext: NodeContext?
     ) async throws -> OperationPlan {
-        guard let runner = modelRunner else {
+        guard let conversation = globalConversation else {
             throw LLMError.modelNotLoaded
         }
 
-        let systemPrompt = createSystemPrompt(nodeContext: nodeContext)
-        let userPrompt = transcript
+        // For now, we only support global context (no node selection)
+        // Node context would require creating a new conversation each time
+        // since the system prompt changes based on selected node
+        if nodeContext != nil {
+            AppLogger.llm().log(event: "llm:nodeContextIgnored", data: [
+                "reason": "not implemented - would break conversation reuse"
+            ])
+        }
 
-        // Create conversation with system prompt as first message
-        let systemMessage = ChatMessage(role: .system, content: [.text(systemPrompt)])
-        let conversation = Conversation(
-            modelRunner: runner,
-            history: [systemMessage]
-        )
-
-        let message = ChatMessage(role: .user, content: [.text(userPrompt)])
+        let message = ChatMessage(role: .user, content: [.text(transcript)])
 
         var fullResponse = ""
         do {
@@ -88,7 +103,8 @@ public actor LLMInferenceService {
             let jsonData = cleanedJSON.data(using: .utf8) ?? Data()
             let plan = try JSONDecoder().decode(OperationPlan.self, from: jsonData)
             AppLogger.llm().log(event: "llm:operationsParsed", data: [
-                "operationCount": plan.operations.count
+                "operationCount": plan.operations.count,
+                "response": cleanedJSON
             ])
             return plan
         } catch {
@@ -146,16 +162,17 @@ public actor LLMInferenceService {
             return """
             Convert speech to todo list operations. Return ONLY valid JSON, no explanations.
 
-            CRITICAL: Your response must be ONLY the JSON object below. Do not add ANY text before or after the JSON.
+            CRITICAL RULES:
+            1. Your response must be ONLY the JSON object. No text before or after.
+            2. The "type" field MUST ALWAYS be "insertNode" - NEVER create custom types
+            3. The user's speech becomes the "title" field - do NOT interpret it as an operation type
+            4. Generate unique 4-character lowercase hex IDs (e.g., "a3f2", "b7e1") for each node
+            5. Use parentId: null for root level items
+            6. Position is 0-based index in parent's children
+            7. Keep titles concise (under 50 chars)
+            8. Create flat lists unless hierarchy is explicit (e.g., "Project X: task A, task B")
 
-            Rules:
-            1. Generate 4-character lowercase hex IDs (e.g., "a3f2", "b7e1") for new nodes
-            2. parentId null = root level
-            3. Position is 0-based index in parent's children
-            4. Keep titles concise (under 50 chars)
-            5. Create flat lists unless hierarchy is explicit (e.g., "Project X: task A, task B")
-
-            Required JSON schema:
+            Required JSON schema (type is ALWAYS "insertNode"):
             {
               "operations": [
                 {
@@ -168,7 +185,7 @@ public actor LLMInferenceService {
               ]
             }
 
-            Examples:
+            Examples showing type is ALWAYS "insertNode":
 
             Input: "Buy milk and cookies"
             Output:
@@ -179,17 +196,25 @@ public actor LLMInferenceService {
               ]
             }
 
+            Input: "I need to pick up my car from the body shop"
+            Output:
+            {
+              "operations": [
+                {"type": "insertNode", "nodeId": "e5f6", "title": "Pick up car from body shop", "parentId": null, "position": 0}
+              ]
+            }
+
             Input: "Weekend plans: hiking Saturday, movie Sunday"
             Output:
             {
               "operations": [
-                {"type": "insertNode", "nodeId": "e5f6", "title": "Weekend plans", "parentId": null, "position": 0},
-                {"type": "insertNode", "nodeId": "a7b8", "title": "Hiking Saturday", "parentId": "e5f6", "position": 0},
-                {"type": "insertNode", "nodeId": "c9d0", "title": "Movie Sunday", "parentId": "e5f6", "position": 1}
+                {"type": "insertNode", "nodeId": "a7b8", "title": "Weekend plans", "parentId": null, "position": 0},
+                {"type": "insertNode", "nodeId": "c9d0", "title": "Hiking Saturday", "parentId": "a7b8", "position": 0},
+                {"type": "insertNode", "nodeId": "e1f2", "title": "Movie Sunday", "parentId": "a7b8", "position": 1}
               ]
             }
 
-            REMEMBER: Return ONLY the JSON object. No extra text.
+            REMEMBER: type is ALWAYS "insertNode". Return ONLY the JSON object.
             """
         }
     }
