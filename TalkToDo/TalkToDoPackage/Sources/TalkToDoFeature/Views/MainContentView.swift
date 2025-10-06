@@ -164,9 +164,10 @@ public struct MainContentView: View {
         }
 
         // Initialize coordinator
+        let pipeline = OnDeviceVoicePipeline(llmService: llmService)
         voiceCoordinator = VoiceInputCoordinator(
             eventStore: store,
-            llmService: llmService,
+            pipeline: pipeline,
             undoManager: undoManager
         )
 
@@ -262,8 +263,16 @@ public struct MainContentView: View {
                 Task {
                     guard let coordinator = voiceCoordinator else { return }
 
-                    await coordinator.processTranscript(
-                        transcript,
+                    let metadata = RecordingMetadata(
+                        transcript: transcript,
+                        audioURL: nil,
+                        duration: 0,
+                        sampleRate: nil,
+                        localeIdentifier: Locale.current.identifier
+                    )
+
+                    await coordinator.processRecording(
+                        metadata: metadata,
                         nodeContext: selectedNodeContext
                     )
 
@@ -279,8 +288,16 @@ public struct MainContentView: View {
                 Task {
                     guard let coordinator = voiceCoordinator else { return }
 
-                    await coordinator.processTranscript(
-                        transcript,
+                    let metadata = RecordingMetadata(
+                        transcript: transcript,
+                        audioURL: nil,
+                        duration: 0,
+                        sampleRate: nil,
+                        localeIdentifier: Locale.current.identifier
+                    )
+
+                    await coordinator.processRecording(
+                        metadata: metadata,
                         nodeContext: selectedNodeContext
                     )
 
@@ -294,8 +311,16 @@ public struct MainContentView: View {
         Task {
             guard let coordinator = voiceCoordinator else { return }
 
-            await coordinator.processTranscript(
-                text,
+            let metadata = RecordingMetadata(
+                transcript: text,
+                audioURL: nil,
+                duration: 0,
+                sampleRate: nil,
+                localeIdentifier: Locale.current.identifier
+            )
+
+            await coordinator.processRecording(
+                metadata: metadata,
                 nodeContext: selectedNodeContext
             )
 

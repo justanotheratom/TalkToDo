@@ -13,54 +13,54 @@ public final class VoiceInputCoordinator {
     public var processingTranscript: String?
 
     @ObservationIgnored private let eventStore: EventStore
-    @ObservationIgnored private let llmService: LLMInferenceService
+    @ObservationIgnored private let pipeline: VoiceProcessingPipeline
     @ObservationIgnored private let undoManager: UndoManager
 
     public init(
         eventStore: EventStore,
-        llmService: LLMInferenceService,
+        pipeline: VoiceProcessingPipeline,
         undoManager: UndoManager
     ) {
         self.eventStore = eventStore
-        self.llmService = llmService
+        self.pipeline = pipeline
         self.undoManager = undoManager
     }
 
     // MARK: - Voice Processing
 
     /// Process voice transcript into node operations
-    public func processTranscript(
-        _ transcript: String,
+    public func processRecording(
+        metadata: RecordingMetadata,
         nodeContext: NodeContext? = nil
     ) async {
+        let transcriptPreview = metadata.transcript ?? ""
         AppLogger.ui().log(event: "voiceCoordinator:processTranscriptStarted", data: [
-            "transcriptLength": transcript.count,
+            "transcriptLength": transcriptPreview.count,
             "hasNodeContext": nodeContext != nil,
-            "transcript": transcript
+            "transcript": transcriptPreview
         ])
         isProcessing = true
         processingError = nil
-        processingTranscript = transcript
+        processingTranscript = transcriptPreview.isEmpty ? nil : transcriptPreview
 
         do {
-            // Generate operations from LLM
-            AppLogger.ui().log(event: "voiceCoordinator:callingLLM", data: [
-                "transcript": transcript
+            AppLogger.ui().log(event: "voiceCoordinator:callingPipeline", data: [
+                "mode": String(describing: type(of: pipeline))
             ])
-            let plan = try await llmService.generateOperations(
-                from: transcript,
+            let result = try await pipeline.process(
+                metadata: metadata,
                 nodeContext: nodeContext
             )
-            AppLogger.ui().log(event: "voiceCoordinator:llmReturned", data: [
-                "operationCount": plan.operations.count
+            AppLogger.ui().log(event: "voiceCoordinator:pipelineReturned", data: [
+                "operationCount": result.operations.count
             ])
 
             // Convert operations to events
             let batchId = NodeID.generateBatchID()
             AppLogger.ui().log(event: "voiceCoordinator:convertingOperations", data: [
-                "operationCount": plan.operations.count
+                "operationCount": result.operations.count
             ])
-            let events = try convertOperationsToEvents(plan.operations, batchId: batchId)
+            let events = try convertOperationsToEvents(result.operations, batchId: batchId)
             AppLogger.ui().log(event: "voiceCoordinator:operationsConverted", data: [
                 "eventCount": events.count
             ])
@@ -79,7 +79,7 @@ public final class VoiceInputCoordinator {
             processingTranscript = nil
 
             AppLogger.ui().log(event: "voiceCoordinator:processSuccess", data: [
-                "operationCount": plan.operations.count,
+                "operationCount": result.operations.count,
                 "batchId": batchId
             ])
         } catch {
