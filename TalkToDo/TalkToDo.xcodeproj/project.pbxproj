@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -27,12 +27,12 @@
 		800368F7A9750EF83A2F6D56 /* TalkToDo.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TalkToDo.entitlements; sourceTree = "<group>"; };
 		9E63F67E14174A7784F35512 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		A01FDE7102AE4B0B4D74C946 /* TalkToDoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TalkToDoApp.swift; sourceTree = "<group>"; };
-		AB2004FA982F34AD908D6FEF /* TalkToDoPackage */ = {isa = PBXFileReference; lastKnownFileType = folder; name = TalkToDoPackage; path = TalkToDoPackage; sourceTree = SOURCE_ROOT; };
+		AB2004FA982F34AD908D6FEF /* TalkToDoPackage */ = {isa = PBXFileReference; lastKnownFileType = folder; path = TalkToDoPackage; sourceTree = SOURCE_ROOT; };
 		B8986B482C883B1F91BFE7BB /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		BFB72481F9DBA867A9109614 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		C69766AF6DFCD45FDA4E2E9E /* TalkToDo.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TalkToDo.entitlements; sourceTree = "<group>"; };
 		D7B9EDEEAC34DC2966298C8F /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		F069371C8E25A0C578E386D7 /* TalkToDo-iOS.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = "TalkToDo-iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		F069371C8E25A0C578E386D7 /* TalkToDo-iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "TalkToDo-iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -175,7 +175,6 @@
 			packageReferences = (
 				884198E2BC1EA35FAD5BFE00 /* XCLocalSwiftPackageReference "TalkToDoPackage" */,
 			);
-			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -289,6 +288,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = iOS/TalkToDo.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = 58MYNHGN72;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = iOS/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
@@ -309,7 +309,10 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = macOS/TalkToDo.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = 58MYNHGN72;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = macOS/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -318,6 +321,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.7;
 				PRODUCT_BUNDLE_IDENTIFIER = com.talktodo.macos;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.9;
 			};
@@ -392,7 +396,10 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = macOS/TalkToDo.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = 58MYNHGN72;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = macOS/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -401,6 +408,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.7;
 				PRODUCT_BUNDLE_IDENTIFIER = com.talktodo.macos;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.9;
 			};
@@ -413,6 +421,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = iOS/TalkToDo.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = 58MYNHGN72;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = iOS/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.5;

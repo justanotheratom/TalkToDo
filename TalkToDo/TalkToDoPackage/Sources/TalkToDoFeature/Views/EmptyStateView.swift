@@ -22,7 +22,7 @@ public struct EmptyStateView: View {
 
                 Image(systemName: "mic.fill")
                     .font(.system(size: 36))
-                    .foregroundStyle(.accent)
+                    .foregroundStyle(Color.accentColor)
             }
             .onAppear {
                 withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: false)) {

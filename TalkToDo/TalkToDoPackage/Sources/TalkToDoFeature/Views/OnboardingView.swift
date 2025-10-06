@@ -70,7 +70,7 @@ private struct WelcomeStep: View {
         VStack(spacing: 24) {
             Image(systemName: "mic.circle.fill")
                 .font(.system(size: 80))
-                .foregroundStyle(.accent)
+                .foregroundStyle(Color.accentColor)
 
             Text("Welcome to TalkToDo")
                 .font(.largeTitle)
