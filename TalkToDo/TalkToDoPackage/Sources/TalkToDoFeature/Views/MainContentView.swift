@@ -18,15 +18,16 @@ public struct MainContentView: View {
     @State private var undoPillDismissTask: Task<Void, Never>?
     @State private var selectedNodeContext: NodeContext?
     @State private var showSettings = false
-    @State private var showOnboarding = false
 
     public init() {}
 
     public var body: some View {
         Group {
-            if let onboarding = onboardingStore, !onboarding.hasCompletedOnboarding {
+            if let onboarding = onboardingStore, onboarding.state != .completed && !onboarding.hasCompletedOnboarding {
                 OnboardingView(store: onboarding, onComplete: {
-                    showOnboarding = false
+                    Task {
+                        await loadDefaultModelIfNeeded()
+                    }
                 })
             } else {
                 mainContent
