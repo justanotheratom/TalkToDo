@@ -40,8 +40,8 @@ public struct ModelCatalog {
         slug: "lfm2-700m-q4",
         displayName: "LFM2 700M (Q4)",
         quantizationSlug: "q4",
-        huggingFaceURL: URL(string: "https://huggingface.co/Liquid4All/LFM-2-700M-Q4")!,
-        estimatedSizeMB: 450,
+        huggingFaceURL: URL(string: "https://huggingface.co/LiquidAI/LeapBundles/resolve/main/LFM2-700M-8da4w_output_8da8w-seq_4096.bundle?download=true")!,
+        estimatedSizeMB: 610,
         recommendedPlatform: .iOS
     )
 
@@ -49,8 +49,8 @@ public struct ModelCatalog {
         slug: "lfm2-1.2b-q4",
         displayName: "LFM2 1.2B (Q4)",
         quantizationSlug: "q4",
-        huggingFaceURL: URL(string: "https://huggingface.co/Liquid4All/LFM-2-1.2B-Q4")!,
-        estimatedSizeMB: 750,
+        huggingFaceURL: URL(string: "https://huggingface.co/LiquidAI/LeapBundles/resolve/main/LFM2-1.2B-8da4w_output_8da8w-seq_4096.bundle?download=true")!,
+        estimatedSizeMB: 924,
         recommendedPlatform: .macOS
     )
 

@@ -42,13 +42,37 @@ public struct ModelDownloadService: Sendable {
             let storage = ModelStorageService()
             let expectedURL = try storage.expectedBundleURL(for: entry)
 
+            AppLogger.data().log(event: "modelDownload:downloaded", data: [
+                "modelSlug": entry.slug,
+                "downloadedPath": downloadedURL.path,
+                "expectedPath": expectedURL.path
+            ])
+
             // Move to final location
             let fm = FileManager.default
             if fm.fileExists(atPath: expectedURL.path) {
+                AppLogger.data().log(event: "modelDownload:removingExisting", data: [
+                    "path": expectedURL.path
+                ])
                 try fm.removeItem(at: expectedURL)
             }
-            try fm.createDirectory(at: expectedURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+
+            let parentDir = expectedURL.deletingLastPathComponent()
+            AppLogger.data().log(event: "modelDownload:creatingParentDir", data: [
+                "path": parentDir.path
+            ])
+            try fm.createDirectory(at: parentDir, withIntermediateDirectories: true)
+
+            AppLogger.data().log(event: "modelDownload:movingFile", data: [
+                "from": downloadedURL.path,
+                "to": expectedURL.path
+            ])
             try fm.moveItem(at: downloadedURL, to: expectedURL)
+
+            // Verify the file was moved successfully
+            guard fm.fileExists(atPath: expectedURL.path) else {
+                throw ModelDownloadError.underlying("File move succeeded but file not found at destination")
+            }
 
             AppLogger.data().log(event: "modelDownload:success", data: [
                 "modelSlug": entry.slug,
@@ -102,12 +126,17 @@ public struct ModelDownloadService: Sendable {
     }
 
     private func extractFilename(from url: URL) -> String? {
-        let pathComponents = url.pathComponents
-        for component in pathComponents.reversed() {
-            if component.hasSuffix(".bundle") {
-                return component
-            }
+        // Get the last path component and remove query parameters
+        let lastComponent = url.lastPathComponent
+
+        // Remove query parameters if present (e.g., "?download=true")
+        let filename = lastComponent.components(separatedBy: "?").first ?? lastComponent
+
+        // Verify it's a .bundle file
+        guard filename.hasSuffix(".bundle") else {
+            return nil
         }
-        return nil
+
+        return filename
     }
 }

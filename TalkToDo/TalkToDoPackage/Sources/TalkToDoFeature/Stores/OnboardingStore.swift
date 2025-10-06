@@ -53,15 +53,30 @@ public final class OnboardingStore {
         let defaultModel = ModelCatalog.defaultModel
         if !storage.isDownloaded(entry: defaultModel) {
             await downloadDefaultModel(defaultModel)
+
+            // Check if download failed
+            if case .failed = state {
+                return
+            }
         }
 
         // Request permissions
         await requestPermissions()
 
+        // Check if permissions were denied
+        if case .failed = state {
+            return
+        }
+
         // Load model
         await loadModel(defaultModel)
 
-        // Mark as complete
+        // Check if load failed
+        if case .failed = state {
+            return
+        }
+
+        // Mark as complete only if all steps succeeded
         state = .completed
         hasCompletedOnboarding = true
 
@@ -105,6 +120,19 @@ public final class OnboardingStore {
     private func loadModel(_ model: ModelCatalogEntry) async {
         do {
             let url = try storage.expectedResourceURL(for: model)
+
+            // Verify file exists before attempting to load
+            guard FileManager.default.fileExists(atPath: url.path) else {
+                AppLogger.ui().logError(
+                    event: "onboarding:loadFailed",
+                    error: NSError(domain: "OnboardingStore", code: -1, userInfo: [
+                        NSLocalizedDescriptionKey: "Model file not found at: \(url.path)"
+                    ])
+                )
+                state = .failed(message: "Model file not found at expected location")
+                return
+            }
+
             try await llmService.loadModel(at: url)
 
             AppLogger.ui().log(event: "onboarding:modelLoaded", data: [
