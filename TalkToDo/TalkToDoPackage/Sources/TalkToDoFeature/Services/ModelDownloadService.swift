@@ -32,7 +32,7 @@ public struct ModelDownloadService: Sendable {
         }
 
         let hfModel = HuggingFaceDownloadableModel(
-            ownerName: "Liquid4All",
+            ownerName: "LiquidAI",
             repoName: "LeapBundles",
             filename: filename
         )
@@ -67,11 +67,69 @@ public struct ModelDownloadService: Sendable {
                 "from": downloadedURL.path,
                 "to": expectedURL.path
             ])
-            try fm.moveItem(at: downloadedURL, to: expectedURL)
 
-            // Verify the file was moved successfully
-            guard fm.fileExists(atPath: expectedURL.path) else {
-                throw ModelDownloadError.underlying("File move succeeded but file not found at destination")
+            // Check if source exists before moving
+            var isSourceDir: ObjCBool = false
+            let sourceExists = fm.fileExists(atPath: downloadedURL.path, isDirectory: &isSourceDir)
+
+            // Check source file size
+            var sourceSize: Int64 = 0
+            if sourceExists, !isSourceDir.boolValue {
+                if let attrs = try? fm.attributesOfItem(atPath: downloadedURL.path) {
+                    sourceSize = attrs[.size] as? Int64 ?? 0
+                }
+            }
+
+            AppLogger.data().log(event: "modelDownload:sourceCheck", data: [
+                "exists": sourceExists,
+                "isDirectory": isSourceDir.boolValue,
+                "fileSize": sourceSize,
+                "path": downloadedURL.path
+            ])
+
+            guard sourceExists else {
+                throw ModelDownloadError.underlying("Source file/directory not found before move")
+            }
+
+            // If source is a tiny file, it's likely a symlink - try to resolve it
+            if sourceSize < 1024 && sourceSize > 0 {
+                AppLogger.data().log(event: "modelDownload:sourceIsSymlink", data: [
+                    "fileSize": sourceSize,
+                    "path": downloadedURL.path
+                ])
+
+                // Try to resolve the symlink
+                if let resolvedPath = try? fm.destinationOfSymbolicLink(atPath: downloadedURL.path) {
+                    AppLogger.data().log(event: "modelDownload:symlinkResolved", data: [
+                        "originalPath": downloadedURL.path,
+                        "resolvedPath": resolvedPath
+                    ])
+
+                    // Use the resolved path for copying
+                    let resolvedURL = URL(fileURLWithPath: resolvedPath)
+                    try fm.copyItem(at: resolvedURL, to: expectedURL)
+                    try? fm.removeItem(at: downloadedURL)
+                } else {
+                    throw ModelDownloadError.underlying("Source appears to be symlink but cannot resolve: \(downloadedURL.path)")
+                }
+            } else {
+                // Normal copy
+                try fm.copyItem(at: downloadedURL, to: expectedURL)
+                try? fm.removeItem(at: downloadedURL)
+            }
+
+            // Verify the bundle was moved successfully (bundles are directories)
+            var isDestDir: ObjCBool = false
+            let destExists = fm.fileExists(atPath: expectedURL.path, isDirectory: &isDestDir)
+
+            AppLogger.data().log(event: "modelDownload:destCheck", data: [
+                "exists": destExists,
+                "isDirectory": isDestDir.boolValue,
+                "path": expectedURL.path
+            ])
+
+            guard destExists else {
+                throw ModelDownloadError.underlying("File move succeeded but bundle not found at destination")
             }
 
             AppLogger.data().log(event: "modelDownload:success", data: [

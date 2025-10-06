@@ -121,8 +121,20 @@ public final class OnboardingStore {
         do {
             let url = try storage.expectedResourceURL(for: model)
 
+            // Brief delay to ensure file system operations are complete
+            try? await Task.sleep(for: .milliseconds(100))
+
             // Verify file exists before attempting to load
-            guard FileManager.default.fileExists(atPath: url.path) else {
+            var isDir: ObjCBool = false
+            let exists = FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir)
+
+            AppLogger.ui().log(event: "onboarding:preLoadCheck", data: [
+                "exists": exists,
+                "isDirectory": isDir.boolValue,
+                "path": url.path
+            ])
+
+            guard exists else {
                 AppLogger.ui().logError(
                     event: "onboarding:loadFailed",
                     error: NSError(domain: "OnboardingStore", code: -1, userInfo: [

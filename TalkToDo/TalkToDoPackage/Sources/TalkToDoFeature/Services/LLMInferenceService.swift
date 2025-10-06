@@ -192,18 +192,39 @@ public actor LLMInferenceService {
         let fm = FileManager.default
         var isDir: ObjCBool = false
         guard fm.fileExists(atPath: url.path, isDirectory: &isDir) else {
+            AppLogger.llm().log(event: "llm:validateFailed", data: [
+                "reason": "fileNotExists",
+                "path": url.path
+            ])
             throw LLMError.modelNotFound(url.path)
         }
 
         if isDir.boolValue {
             let contents = try fm.contentsOfDirectory(atPath: url.path)
+            AppLogger.llm().log(event: "llm:validateDir", data: [
+                "path": url.path,
+                "contentCount": contents.count
+            ])
             guard !contents.isEmpty else {
+                AppLogger.llm().log(event: "llm:validateFailed", data: [
+                    "reason": "emptyDirectory",
+                    "path": url.path
+                ])
                 throw LLMError.modelNotFound(url.path)
             }
         } else {
             let attributes = try fm.attributesOfItem(atPath: url.path)
             let fileSize = attributes[.size] as? Int64 ?? 0
+            AppLogger.llm().log(event: "llm:validateFile", data: [
+                "path": url.path,
+                "fileSize": fileSize
+            ])
             guard fileSize > 1024 else {
+                AppLogger.llm().log(event: "llm:validateFailed", data: [
+                    "reason": "fileTooSmall",
+                    "path": url.path,
+                    "fileSize": fileSize
+                ])
                 throw LLMError.modelNotFound(url.path)
             }
         }
