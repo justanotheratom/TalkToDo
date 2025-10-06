@@ -14,8 +14,8 @@ public struct MainContentView: View {
     @State private var llmService = LLMInferenceService()
     @State private var onboardingStore: OnboardingStore?
 
-    @State private var showUndoPill = false
-    @State private var undoPillDismissTask: Task<Void, Never>?
+    @State private var undoFeedbackMessage: String?
+    @State private var undoFeedbackDismissTask: Task<Void, Never>?
     @State private var selectedNodeContext: NodeContext?
     @State private var showSettings = false
 
@@ -50,16 +50,28 @@ public struct MainContentView: View {
                     onEdit: handleEdit
                 )
 
-                // Undo pill (top-center overlay)
-                VStack {
-                    UndoPill(isVisible: showUndoPill, onTap: handleUndo)
-                        .padding(.top, 8)
-                    Spacer()
-                }
+                // Microphone input bar with undo feedback
+                VStack(spacing: 0) {
+                    // Undo feedback overlay above microphone
+                    if let message = undoFeedbackMessage {
+                        HStack {
+                            Spacer()
+                            Text(message)
+                                .font(.caption)
+                                .fontWeight(.medium)
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(
+                                    Capsule()
+                                        .fill(Color.black.opacity(0.75))
+                                )
+                                .padding(.bottom, 4)
+                            Spacer()
+                        }
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
 
-                // Microphone input bar
-                VStack {
-                    Spacer()
                     MicrophoneInputBar(
                         status: voiceInputStore.status,
                         isEnabled: voiceInputStore.isEnabled,
@@ -74,14 +86,31 @@ public struct MainContentView: View {
                 }
             }
             .navigationTitle("TalkToDo")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
                 #if os(iOS)
+                ToolbarItem(placement: .topBarLeading) {
+                    if undoManager.canUndo() {
+                        Button(action: handleUndo) {
+                            Image(systemName: "arrow.uturn.backward")
+                        }
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: { showSettings = true }) {
                         Image(systemName: "gearshape")
                     }
                 }
                 #else
+                ToolbarItem(placement: .automatic) {
+                    if undoManager.canUndo() {
+                        Button(action: handleUndo) {
+                            Image(systemName: "arrow.uturn.backward")
+                        }
+                    }
+                }
                 ToolbarItem(placement: .automatic) {
                     Button(action: { showSettings = true }) {
                         Image(systemName: "gearshape")
@@ -197,7 +226,6 @@ public struct MainContentView: View {
             )
             try store.appendEvent(event)
             undoManager.recordBatch(batchId)
-            showUndoPillBriefly()
 
             AppLogger.ui().log(event: "node:deleted", data: ["nodeId": nodeId])
         } catch {
@@ -224,10 +252,6 @@ public struct MainContentView: View {
                     )
 
                     selectedNodeContext = nil
-
-                    if coordinator.canUndo() {
-                        showUndoPillBriefly()
-                    }
                 }
             }
         }
@@ -245,10 +269,6 @@ public struct MainContentView: View {
                     )
 
                     selectedNodeContext = nil
-
-                    if coordinator.canUndo() {
-                        showUndoPillBriefly()
-                    }
                 }
             }
         }
@@ -258,34 +278,29 @@ public struct MainContentView: View {
 
     private func handleUndo() {
         Task {
-            await voiceCoordinator?.undo()
-            hideUndoPill()
-        }
-    }
-
-    private func showUndoPillBriefly() {
-        undoPillDismissTask?.cancel()
-
-        withAnimation {
-            showUndoPill = true
-        }
-
-        undoPillDismissTask = Task {
-            try? await Task.sleep(for: .seconds(3))
-            guard !Task.isCancelled else { return }
-
-            await MainActor.run {
-                withAnimation {
-                    showUndoPill = false
-                }
+            let undone = await voiceCoordinator?.undo() ?? false
+            if undone {
+                showUndoFeedback("Undone")
             }
         }
     }
 
-    private func hideUndoPill() {
-        undoPillDismissTask?.cancel()
+    private func showUndoFeedback(_ message: String) {
+        undoFeedbackDismissTask?.cancel()
+
         withAnimation {
-            showUndoPill = false
+            undoFeedbackMessage = message
+        }
+
+        undoFeedbackDismissTask = Task {
+            try? await Task.sleep(for: .seconds(1.5))
+            guard !Task.isCancelled else { return }
+
+            await MainActor.run {
+                withAnimation {
+                    undoFeedbackMessage = nil
+                }
+            }
         }
     }
 }

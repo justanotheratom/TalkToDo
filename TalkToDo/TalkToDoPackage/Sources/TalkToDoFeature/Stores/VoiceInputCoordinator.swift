@@ -155,15 +155,17 @@ public final class VoiceInputCoordinator {
 
     // MARK: - Undo
 
-    public func undo() async {
-        guard undoManager.canUndo() else { return }
+    public func undo() async -> Bool {
+        guard undoManager.canUndo() else { return false }
 
         do {
             try await undoManager.undo(eventStore: eventStore)
             AppLogger.ui().log(event: "voiceCoordinator:undoSuccess", data: [:])
+            return true
         } catch {
             processingError = "Undo failed: \(error.localizedDescription)"
             AppLogger.ui().logError(event: "voiceCoordinator:undoFailed", error: error)
+            return false
         }
     }
 
