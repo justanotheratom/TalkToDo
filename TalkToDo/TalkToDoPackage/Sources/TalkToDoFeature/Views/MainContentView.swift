@@ -13,6 +13,7 @@ public struct MainContentView: View {
     @State private var voiceCoordinator: VoiceInputCoordinator?
     @State private var llmService = LLMInferenceService()
     @State private var onboardingStore: OnboardingStore?
+    @State private var processingSettings = VoiceProcessingSettingsStore()
 
     @State private var undoFeedbackMessage: String?
     @State private var undoFeedbackDismissTask: Task<Void, Never>?
@@ -132,7 +133,7 @@ public struct MainContentView: View {
                 #endif
             }
             .sheet(isPresented: $showSettings) {
-                SettingsView()
+                SettingsView(settingsStore: processingSettings)
             }
         }
     }

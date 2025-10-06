@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import Observation
 import TalkToDoShared
 
 @available(iOS 18.0, macOS 15.0, *)
@@ -8,17 +9,41 @@ public struct SettingsView: View {
     @Environment(\.eventStore) private var eventStore
     @Environment(\.undoManager) private var undoManager
 
+    @Bindable private var settingsStore: VoiceProcessingSettingsStore
+
     @State private var selectedModelSlug = ModelCatalog.defaultModel.slug
     @State private var downloadStates: [String: DownloadState] = [:]
     @State private var storage = ModelStorageService()
     @State private var downloadService = ModelDownloadService()
     @State private var showDeleteDataAlert = false
 
-    public init() {}
+    public init(settingsStore: VoiceProcessingSettingsStore) {
+        self._settingsStore = Bindable(settingsStore)
+    }
 
     public var body: some View {
         NavigationStack {
             Form {
+                Section("Voice Processing") {
+                    Picker("Processing Mode", selection: $settingsStore.mode) {
+                        ForEach(ProcessingMode.allCases, id: \.self) { mode in
+                            Text(mode.displayName)
+                                .tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+
+                    Text(settingsStore.mode.description)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    if let warning = settingsStore.mode.warningCopy {
+                        Text(warning)
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                    }
+                }
+
                 Section("LLM Model") {
                     ForEach(ModelCatalog.all) { model in
                         ModelRow(
@@ -228,5 +253,5 @@ public enum DownloadState: Equatable {
 }
 
 #Preview {
-    SettingsView()
+    SettingsView(settingsStore: VoiceProcessingSettingsStore())
 }
