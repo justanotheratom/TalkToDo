@@ -13,17 +13,28 @@ public final class VoiceInputCoordinator {
     public var processingTranscript: String?
 
     @ObservationIgnored private let eventStore: EventStore
-    @ObservationIgnored private let pipeline: AnyVoiceProcessingPipeline
+    @ObservationIgnored private var pipeline: AnyVoiceProcessingPipeline
+    @ObservationIgnored private var currentMode: ProcessingMode
     @ObservationIgnored private let undoManager: UndoManager
 
     public init(
         eventStore: EventStore,
         pipeline: AnyVoiceProcessingPipeline,
+        mode: ProcessingMode,
         undoManager: UndoManager
     ) {
         self.eventStore = eventStore
         self.pipeline = pipeline
+        self.currentMode = mode
         self.undoManager = undoManager
+    }
+
+    public func updatePipeline(_ pipeline: AnyVoiceProcessingPipeline, mode: ProcessingMode) {
+        self.pipeline = pipeline
+        currentMode = mode
+        AppLogger.ui().log(event: "voiceCoordinator:pipelineUpdated", data: [
+            "mode": mode.rawValue
+        ])
     }
 
     // MARK: - Voice Processing
@@ -52,7 +63,7 @@ public final class VoiceInputCoordinator {
 
         do {
             AppLogger.ui().log(event: "voiceCoordinator:callingPipeline", data: [
-                "mode": String(describing: type(of: pipeline))
+                "mode": currentMode.rawValue
             ])
             let result = try await pipeline.process(
                 metadata: metadata,
@@ -87,12 +98,16 @@ public final class VoiceInputCoordinator {
 
             AppLogger.ui().log(event: "voiceCoordinator:processSuccess", data: [
                 "operationCount": result.operations.count,
-                "batchId": batchId
+                "batchId": batchId,
+                "mode": currentMode.rawValue
             ])
         } catch {
             isProcessing = false
             processingError = error.localizedDescription
             // Keep transcript visible for error state
+            AppLogger.ui().log(event: "voiceCoordinator:processFailedMode", data: [
+                "mode": currentMode.rawValue
+            ])
             AppLogger.ui().logError(event: "voiceCoordinator:processFailed", error: error)
 
             // Clear error after delay

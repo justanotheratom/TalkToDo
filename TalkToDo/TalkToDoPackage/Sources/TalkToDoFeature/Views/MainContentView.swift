@@ -14,6 +14,7 @@ public struct MainContentView: View {
     @State private var llmService = LLMInferenceService()
     @State private var onboardingStore: OnboardingStore?
     @State private var processingSettings = VoiceProcessingSettingsStore()
+    @State private var pipelineFactory: VoiceProcessingPipelineFactory?
 
     @State private var undoFeedbackMessage: String?
     @State private var undoFeedbackDismissTask: Task<Void, Never>?
@@ -38,6 +39,9 @@ public struct MainContentView: View {
         .environment(\.undoManager, undoManager)
         .task {
             await initializeApp()
+        }
+        .onChange(of: processingSettings.mode) { _, newMode in
+            updateProcessingPipeline(for: newMode)
         }
     }
 
@@ -165,12 +169,21 @@ public struct MainContentView: View {
         }
 
         // Initialize coordinator
-        let pipeline = AnyVoiceProcessingPipeline(OnDeviceVoicePipeline(llmService: llmService))
+        let factory = VoiceProcessingPipelineFactory(
+            settingsStore: processingSettings,
+            llmService: llmService
+        )
+        pipelineFactory = factory
+        let pipeline = factory.currentPipeline()
         voiceCoordinator = VoiceInputCoordinator(
             eventStore: store,
             pipeline: pipeline,
+            mode: processingSettings.mode,
             undoManager: undoManager
         )
+        AppLogger.ui().log(event: "app:pipelineInitialized", data: [
+            "mode": processingSettings.mode.rawValue
+        ])
 
         // Load default model if onboarding is complete
         if onboardingStore?.hasCompletedOnboarding == true {
@@ -301,6 +314,14 @@ public struct MainContentView: View {
 
             selectedNodeContext = nil
         }
+    }
+
+    private func updateProcessingPipeline(for mode: ProcessingMode) {
+        guard let factory = pipelineFactory,
+              let coordinator = voiceCoordinator else { return }
+
+        let pipeline = factory.pipeline(for: mode)
+        coordinator.updatePipeline(pipeline, mode: mode)
     }
 
     // MARK: - Undo
