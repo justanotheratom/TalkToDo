@@ -76,8 +76,9 @@ public final class VoiceInputStore {
     @ObservationIgnored private let speechService: SpeechRecognitionService
     @ObservationIgnored private var recordingStartTime: Date?
     @ObservationIgnored private var errorDismissTask: Task<Void, Never>?
-    @ObservationIgnored private var transcriptHandler: ((String) -> Void)?
+    @ObservationIgnored private var completionHandler: ((RecordingMetadata) -> Void)?
     @ObservationIgnored private var transcriptPollingTask: Task<Void, Never>?
+    @ObservationIgnored private var recordingLocaleIdentifier: String?
 
     // MARK: - Initialization
 
@@ -190,7 +191,7 @@ public final class VoiceInputStore {
 
     // MARK: - Recording
 
-    public func startRecording(onTranscript: @escaping (String) -> Void) async {
+    public func startRecording(onComplete: @escaping (RecordingMetadata) -> Void) async {
         guard !isRecording, !isTranscribing else { return }
 
         // Ensure permissions
@@ -211,8 +212,10 @@ public final class VoiceInputStore {
         #endif
 
         do {
-            try await speechService.start(locale: Locale.current)
-            transcriptHandler = onTranscript
+            let locale = Locale.current
+            try await speechService.start(locale: locale)
+            completionHandler = onComplete
+            recordingLocaleIdentifier = locale.identifier
             isRecording = true
             recordingStartTime = Date()
             clearError()
@@ -220,19 +223,20 @@ public final class VoiceInputStore {
 
             AppLogger.speech().log(event: "voice:recordingStarted", data: [:])
         } catch {
-            transcriptHandler = nil
+            completionHandler = nil
+            recordingLocaleIdentifier = nil
             await handleSpeechError(error)
         }
     }
 
-    public func finishRecording(onTranscript: @escaping (String) -> Void) async {
+    public func finishRecording() async {
         guard isRecording else {
             AppLogger.speech().log(event: "voice:finishRecordingSkipped", data: ["reason": "notRecording"])
             return
         }
 
-        let finalHandler = transcriptHandler ?? onTranscript
-        transcriptHandler = nil
+        let finalHandler = completionHandler
+        completionHandler = nil
 
         AppLogger.speech().log(event: "voice:finishRecordingStarted", data: [:])
         isRecording = false
@@ -243,12 +247,12 @@ public final class VoiceInputStore {
             AppLogger.speech().log(event: "voice:stoppingRecognition", data: [:])
 
             // Add timeout to prevent infinite hang
-            let transcript = try await withTimeout(seconds: 10) { [speechService] in
+            let recognitionResult = try await withTimeout(seconds: 10) { [speechService] in
                 try await speechService.stop()
             }
 
             AppLogger.speech().log(event: "voice:recognitionStopped", data: [
-                "hasTranscript": transcript != nil
+                "hasTranscript": recognitionResult.transcript != nil
             ])
             isTranscribing = false
 
@@ -264,6 +268,7 @@ public final class VoiceInputStore {
                     AppLogger.speech().log(event: "voice:recordingTooShort", data: [
                         "durationMs": Int(duration * 1000)
                     ])
+                    recordingLocaleIdentifier = nil
                     return
                 }
             }
@@ -271,7 +276,7 @@ public final class VoiceInputStore {
             recordingStartTime = nil
 
             // Validate transcript
-            let cleaned = transcript?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let cleaned = recognitionResult.transcript?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             AppLogger.speech().log(event: "voice:validateTranscript", data: [
                 "length": cleaned.count,
                 "isEmpty": cleaned.isEmpty
@@ -279,6 +284,7 @@ public final class VoiceInputStore {
             guard !cleaned.isEmpty else {
                 setError("I didn't catch that. Try speaking again.")
                 AppLogger.speech().log(event: "voice:transcriptEmpty", data: [:])
+                recordingLocaleIdentifier = nil
                 return
             }
 
@@ -288,14 +294,30 @@ public final class VoiceInputStore {
             ])
             liveTranscript = nil
 
-            AppLogger.speech().log(event: "voice:callingOnTranscript", data: [:])
-            finalHandler(cleaned)
-            AppLogger.speech().log(event: "voice:onTranscriptCalled", data: [:])
+            if let finalHandler {
+                let localeId = recordingLocaleIdentifier ?? Locale.current.identifier
+                let metadata = RecordingMetadata(
+                    transcript: cleaned,
+                    audioURL: recognitionResult.audioURL,
+                    duration: recognitionResult.duration,
+                    sampleRate: recognitionResult.sampleRate,
+                    localeIdentifier: localeId
+                )
+
+                AppLogger.speech().log(event: "voice:callingCompletion", data: [
+                    "hasAudio": metadata.audioURL != nil
+                ])
+                finalHandler(metadata)
+                AppLogger.speech().log(event: "voice:completionInvoked", data: [:])
+            }
+
+            recordingLocaleIdentifier = nil
         } catch {
             AppLogger.speech().log(event: "voice:finishRecordingError", data: [
                 "error": error.localizedDescription
             ])
             isTranscribing = false
+            recordingLocaleIdentifier = nil
             await handleSpeechError(error)
         }
     }
@@ -303,11 +325,12 @@ public final class VoiceInputStore {
     public func cancelRecording() async {
         recordingStartTime = nil
         stopTranscriptPolling()
-        transcriptHandler = nil
+        completionHandler = nil
         liveTranscript = nil
         await speechService.cancel()
         isRecording = false
         isTranscribing = false
+        recordingLocaleIdentifier = nil
     }
 
     private func startTranscriptPolling() {
@@ -363,6 +386,10 @@ public final class VoiceInputStore {
 
     private func handleSpeechError(_ error: Error) async {
         recordingStartTime = nil
+        stopTranscriptPolling()
+        completionHandler = nil
+        liveTranscript = nil
+        recordingLocaleIdentifier = nil
 
         if let serviceError = error as? SpeechRecognitionService.ServiceError {
             switch serviceError {

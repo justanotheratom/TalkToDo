@@ -25,7 +25,12 @@ public struct SettingsView: View {
         NavigationStack {
             Form {
                 Section("Voice Processing") {
-                    Picker("Processing Mode", selection: $settingsStore.mode) {
+                    let modeBinding = Binding(
+                        get: { settingsStore.mode },
+                        set: { settingsStore.update(mode: $0) }
+                    )
+
+                    Picker("Processing Mode", selection: modeBinding) {
                         ForEach(ProcessingMode.allCases, id: \.self) { mode in
                             Text(mode.displayName)
                                 .tag(mode)

@@ -260,17 +260,9 @@ public struct MainContentView: View {
 
     private func handleMicrophonePress() {
         Task {
-            await voiceInputStore.startRecording { transcript in
+            await voiceInputStore.startRecording { metadata in
                 Task {
                     guard let coordinator = voiceCoordinator else { return }
-
-                    let metadata = RecordingMetadata(
-                        transcript: transcript,
-                        audioURL: nil,
-                        duration: 0,
-                        sampleRate: nil,
-                        localeIdentifier: Locale.current.identifier
-                    )
 
                     await coordinator.processRecording(
                         metadata: metadata,
@@ -285,26 +277,8 @@ public struct MainContentView: View {
 
     private func handleMicrophoneRelease() {
         Task {
-            await voiceInputStore.finishRecording { transcript in
-                Task {
-                    guard let coordinator = voiceCoordinator else { return }
-
-                    let metadata = RecordingMetadata(
-                        transcript: transcript,
-                        audioURL: nil,
-                        duration: 0,
-                        sampleRate: nil,
-                        localeIdentifier: Locale.current.identifier
-                    )
-
-                    await coordinator.processRecording(
-                        metadata: metadata,
-                        nodeContext: selectedNodeContext
-                    )
-
-                    selectedNodeContext = nil
-                }
-            }
+            await voiceInputStore.finishRecording()
+            selectedNodeContext = nil
         }
     }
 

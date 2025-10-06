@@ -34,6 +34,13 @@ public final class VoiceInputCoordinator {
         nodeContext: NodeContext? = nil
     ) async {
         let transcriptPreview = metadata.transcript ?? ""
+        let audioURL = metadata.audioURL
+        defer {
+            if let audioURL,
+               FileManager.default.fileExists(atPath: audioURL.path) {
+                try? FileManager.default.removeItem(at: audioURL)
+            }
+        }
         AppLogger.ui().log(event: "voiceCoordinator:processTranscriptStarted", data: [
             "transcriptLength": transcriptPreview.count,
             "hasNodeContext": nodeContext != nil,

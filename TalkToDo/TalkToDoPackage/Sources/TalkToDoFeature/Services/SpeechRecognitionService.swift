@@ -1,5 +1,21 @@
+import Foundation
 import AVFoundation
-import Speech
+@preconcurrency import Speech
+
+@available(iOS 18.0, macOS 15.0, *)
+public struct SpeechRecognitionResult: Sendable {
+    public let transcript: String?
+    public let audioURL: URL?
+    public let duration: TimeInterval
+    public let sampleRate: Double?
+
+    public init(transcript: String?, audioURL: URL?, duration: TimeInterval, sampleRate: Double?) {
+        self.transcript = transcript
+        self.audioURL = audioURL
+        self.duration = duration
+        self.sampleRate = sampleRate
+    }
+}
 
 @available(iOS 18.0, macOS 15.0, *)
 public actor SpeechRecognitionService {
@@ -64,6 +80,10 @@ public actor SpeechRecognitionService {
     private var finishContinuation: CheckedContinuation<String?, Error>?
     private var latestTranscription: String?
     private var localeProvider: () -> Locale
+    private var recordingFile: AVAudioFile?
+    private var recordingURL: URL?
+    private var recordingStartDate: Date?
+    private var recordingSampleRate: Double?
 
     public init(localeProvider: @escaping () -> Locale = { Locale.current }) {
         self.localeProvider = localeProvider
@@ -114,12 +134,30 @@ public actor SpeechRecognitionService {
         }
         #endif
 
+        recognitionRequest = request
+        self.audioEngine = audioEngine
+        speechRecognizer = recognizer
+        latestTranscription = nil
+
         let inputNode = audioEngine.inputNode
 
         let recordingFormat = inputNode.outputFormat(forBus: 0)
+        recordingSampleRate = recordingFormat.sampleRate
+        do {
+            let fileURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent("talktodo-recording-\(UUID().uuidString).caf")
+            recordingFile = try AVAudioFile(forWriting: fileURL, settings: recordingFormat.settings)
+            recordingURL = fileURL
+        } catch {
+            recordingFile = nil
+            recordingURL = nil
+        }
         inputNode.removeTap(onBus: 0)
         inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { buffer, _ in
             request.append(buffer)
+            if let file = self.recordingFile {
+                try? file.write(from: buffer)
+            }
         }
 
         audioEngine.prepare()
@@ -130,10 +168,7 @@ public actor SpeechRecognitionService {
             throw ServiceError.audioEngineUnavailable
         }
 
-        recognitionRequest = request
-        self.audioEngine = audioEngine
-        speechRecognizer = recognizer
-        latestTranscription = nil
+        recordingStartDate = Date()
         state = .recording
 
         recognitionTask = recognizer.recognitionTask(with: request) { [weak self] result, error in
@@ -145,7 +180,7 @@ public actor SpeechRecognitionService {
         }
     }
 
-    func stop() async throws -> String? {
+    func stop() async throws -> SpeechRecognitionResult {
         guard state == .recording else { throw ServiceError.noActiveRecognition }
 
         // Stop audio input
@@ -184,8 +219,18 @@ public actor SpeechRecognitionService {
             return result
         }
 
+        let duration = recordingStartDate.map { Date().timeIntervalSince($0) } ?? 0
+        let sanitizedDuration = duration > 0 ? duration : 0
+        let audioURL = recordingURL
+        let sampleRate = recordingSampleRate
+
         await cleanup()
-        return result
+        return SpeechRecognitionResult(
+            transcript: result,
+            audioURL: audioURL,
+            duration: sanitizedDuration,
+            sampleRate: sampleRate
+        )
     }
 
     private func setFinishContinuation(_ continuation: CheckedContinuation<String?, Error>) {
@@ -197,6 +242,7 @@ public actor SpeechRecognitionService {
             continuation.resume(throwing: ServiceError.recognitionFailed("Cancelled"))
             finishContinuation = nil
         }
+        discardRecordedAudio()
         await cleanup()
     }
 
@@ -234,6 +280,10 @@ public actor SpeechRecognitionService {
         audioEngine?.inputNode.removeTap(onBus: 0)
         audioEngine = nil
         latestTranscription = nil
+        recordingFile = nil
+        recordingURL = nil
+        recordingStartDate = nil
+        recordingSampleRate = nil
         state = .idle
 
         #if os(iOS)
@@ -241,5 +291,11 @@ public actor SpeechRecognitionService {
             try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         }
         #endif
+    }
+
+    private func discardRecordedAudio() {
+        if let url = recordingURL {
+            try? FileManager.default.removeItem(at: url)
+        }
     }
 }
