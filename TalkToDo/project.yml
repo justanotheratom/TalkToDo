@@ -17,6 +17,8 @@ targets:
     deploymentTarget: "18.5"
     sources:
       - path: iOS
+    resources:
+      - path: iOS/Assets.xcassets
     dependencies:
       - package: TalkToDoPackage
         product: TalkToDoFeature
@@ -48,6 +50,8 @@ targets:
     deploymentTarget: "15.7"
     sources:
       - path: macOS
+    resources:
+      - path: macOS/Assets.xcassets
     dependencies:
       - package: TalkToDoPackage
         product: TalkToDoFeature

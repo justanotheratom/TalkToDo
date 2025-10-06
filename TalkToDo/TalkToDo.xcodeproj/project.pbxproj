@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 63;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -12,23 +12,27 @@
 		1F289D0DBA8DEC18B2100AED /* TalkToDoShared in Frameworks */ = {isa = PBXBuildFile; productRef = 2451926ECE7119285A17A200 /* TalkToDoShared */; };
 		706CCD4C174ADEE20D97667D /* TalkToDoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3677FDD0DB09CAECB4D7C1C1 /* TalkToDoApp.swift */; };
 		7BF0149E87E14808388CCD2F /* TalkToDoFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 6D0BD4C5B5E211B0007BBFFC /* TalkToDoFeature */; };
+		7F17CDA297D48FEFFE8415F4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 24A9DD4E5DA8179115C546CF /* Assets.xcassets */; };
+		7FAFFD32575A0B120830C5B4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B8986B482C883B1F91BFE7BB /* Assets.xcassets */; };
 		B5ED148A1B0A14AFE7A2E6C5 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFB72481F9DBA867A9109614 /* ContentView.swift */; };
 		B83FE05D6EF6D2B33CA321B2 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7B9EDEEAC34DC2966298C8F /* ContentView.swift */; };
 		CEA1F704C4875413E993D575 /* TalkToDoFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 3DAC79B4B927E2E73EABF6DD /* TalkToDoFeature */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		24A9DD4E5DA8179115C546CF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		3677FDD0DB09CAECB4D7C1C1 /* TalkToDoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TalkToDoApp.swift; sourceTree = "<group>"; };
 		55514AFF967BA97D309B9276 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		71E2F80BB89CBB4386DA9BE6 /* TalkToDo-macOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "TalkToDo-macOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		800368F7A9750EF83A2F6D56 /* TalkToDo.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TalkToDo.entitlements; sourceTree = "<group>"; };
 		9E63F67E14174A7784F35512 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		A01FDE7102AE4B0B4D74C946 /* TalkToDoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TalkToDoApp.swift; sourceTree = "<group>"; };
-		AB2004FA982F34AD908D6FEF /* TalkToDoPackage */ = {isa = PBXFileReference; lastKnownFileType = folder; path = TalkToDoPackage; sourceTree = SOURCE_ROOT; };
+		AB2004FA982F34AD908D6FEF /* TalkToDoPackage */ = {isa = PBXFileReference; lastKnownFileType = folder; name = TalkToDoPackage; path = TalkToDoPackage; sourceTree = SOURCE_ROOT; };
+		B8986B482C883B1F91BFE7BB /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		BFB72481F9DBA867A9109614 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		C69766AF6DFCD45FDA4E2E9E /* TalkToDo.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TalkToDo.entitlements; sourceTree = "<group>"; };
 		D7B9EDEEAC34DC2966298C8F /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		F069371C8E25A0C578E386D7 /* TalkToDo-iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "TalkToDo-iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		F069371C8E25A0C578E386D7 /* TalkToDo-iOS.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = "TalkToDo-iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -66,6 +70,7 @@
 		28AC137D110B081AA3C3E17D /* iOS */ = {
 			isa = PBXGroup;
 			children = (
+				B8986B482C883B1F91BFE7BB /* Assets.xcassets */,
 				D7B9EDEEAC34DC2966298C8F /* ContentView.swift */,
 				9E63F67E14174A7784F35512 /* Info.plist */,
 				C69766AF6DFCD45FDA4E2E9E /* TalkToDo.entitlements */,
@@ -85,6 +90,7 @@
 		F8BB3D72A90C53D70A13EE0A /* macOS */ = {
 			isa = PBXGroup;
 			children = (
+				24A9DD4E5DA8179115C546CF /* Assets.xcassets */,
 				BFB72481F9DBA867A9109614 /* ContentView.swift */,
 				55514AFF967BA97D309B9276 /* Info.plist */,
 				800368F7A9750EF83A2F6D56 /* TalkToDo.entitlements */,
@@ -110,6 +116,7 @@
 			buildConfigurationList = 06D079960C07FB0C69332450 /* Build configuration list for PBXNativeTarget "TalkToDo-macOS" */;
 			buildPhases = (
 				8F8B799C05856020B131FCAD /* Sources */,
+				8F00F202C01374B977C3C294 /* Resources */,
 				F841A4FC7B0290551ABEFAE0 /* Frameworks */,
 			);
 			buildRules = (
@@ -130,6 +137,7 @@
 			buildConfigurationList = 5A168DE351BE6C4D7EC05626 /* Build configuration list for PBXNativeTarget "TalkToDo-iOS" */;
 			buildPhases = (
 				13A5A336B5D3B25BD5A20A3B /* Sources */,
+				B932DDE2F9D19265A8C5D881 /* Resources */,
 				CFE3D809B0BC54D2BADB3FA5 /* Frameworks */,
 			);
 			buildRules = (
@@ -167,6 +175,7 @@
 			packageReferences = (
 				884198E2BC1EA35FAD5BFE00 /* XCLocalSwiftPackageReference "TalkToDoPackage" */,
 			);
+			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -175,6 +184,25 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		8F00F202C01374B977C3C294 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7F17CDA297D48FEFFE8415F4 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B932DDE2F9D19265A8C5D881 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7FAFFD32575A0B120830C5B4 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		13A5A336B5D3B25BD5A20A3B /* Sources */ = {
@@ -260,7 +288,6 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = iOS/TalkToDo.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = 58MYNHGN72;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = iOS/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
@@ -382,7 +409,6 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = iOS/TalkToDo.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = 58MYNHGN72;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = iOS/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
