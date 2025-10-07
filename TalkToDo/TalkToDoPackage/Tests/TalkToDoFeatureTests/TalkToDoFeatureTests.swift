@@ -1,3 +1,4 @@
+import SwiftData
 import XCTest
 @testable import TalkToDoFeature
 @testable import TalkToDoShared
@@ -75,6 +76,32 @@ final class TalkToDoFeatureTests: XCTestCase {
         } catch {
             XCTFail("Unexpected error: \(error)")
         }
+    }
+
+    @MainActor
+    func testOperationExecutorResolvesParentReferencesForRemoteIds() throws {
+        let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try ModelContainer(for: NodeEvent.self, configurations: configuration)
+        let context = ModelContext(container)
+        let tree = NodeTree()
+        let store = EventStore(modelContext: context, nodeTree: tree)
+        let undoManager = TalkToDoFeature.UndoManager()
+        let executor = OperationExecutor(eventStore: store, undoManager: undoManager)
+
+        let operations: [TalkToDoFeature.Operation] = [
+            TalkToDoFeature.Operation(type: "insertNode", nodeId: "parent", title: "Buy stuff from DMart", parentId: nil, position: 0),
+            TalkToDoFeature.Operation(type: "insertNode", nodeId: "milk", title: "Milk", parentId: "parent", position: 0),
+            TalkToDoFeature.Operation(type: "insertNode", nodeId: "eggs", title: "Eggs", parentId: "parent", position: 1),
+            TalkToDoFeature.Operation(type: "insertNode", nodeId: "spinach", title: "Spinach", parentId: "parent", position: 2)
+        ]
+
+        _ = try executor.execute(operations: operations)
+
+        XCTAssertEqual(tree.rootNodes.count, 1)
+        let root = tree.rootNodes[0]
+        XCTAssertEqual(root.title, "Buy stuff from DMart")
+        XCTAssertEqual(root.children.count, 3)
+        XCTAssertEqual(root.children.map(\.title), ["Milk", "Eggs", "Spinach"])
     }
 }
 

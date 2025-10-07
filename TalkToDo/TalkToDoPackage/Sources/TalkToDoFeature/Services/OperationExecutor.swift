@@ -30,7 +30,7 @@ public struct OperationExecutor {
 
     private func convertOperationsToEvents(_ operations: [Operation], batchId: String) throws -> [NodeEvent] {
         var events: [NodeEvent] = []
-        var createdNodeIds = Set<String>()
+        var nodeIdMapping: [String: String] = [:]
 
         for operation in operations {
             guard let operationType = operation.operationType else {
@@ -49,35 +49,29 @@ public struct OperationExecutor {
                     continue
                 }
 
-                if let parentId = operation.parentId, !createdNodeIds.contains(parentId) {
-                    AppLogger.ui().log(event: "operationExecutor:invalidParentId", data: [
-                        "nodeId": operation.nodeId,
+                let resolvedNodeId = resolveGeneratedNodeId(for: operation.nodeId, mapping: &nodeIdMapping)
+                let resolvedParentId = resolveParentId(
+                    operation.parentId,
+                    mapping: nodeIdMapping
+                )
+
+                if let parentId = operation.parentId,
+                   nodeIdMapping[parentId] == nil,
+                   resolvedParentId == nil {
+                    AppLogger.ui().log(event: "operationExecutor:parentNotResolved", data: [
+                        "childNodeId": operation.nodeId,
                         "parentId": parentId,
-                        "title": title,
-                        "reason": "Parent ID does not exist in earlier operations - setting to null"
+                        "title": title
                     ])
-                    let uniqueNodeId = NodeID.generate()
-                    createdNodeIds.insert(uniqueNodeId)
-
-                    let payload = InsertNodePayload(
-                        nodeId: uniqueNodeId,
-                        title: title,
-                        parentId: nil,
-                        position: operation.position ?? 0
-                    )
-                    events.append(try makeEvent(type: .insertNode, payload: payload, batchId: batchId))
-                } else {
-                    let uniqueNodeId = NodeID.generate()
-                    createdNodeIds.insert(uniqueNodeId)
-
-                    let payload = InsertNodePayload(
-                        nodeId: uniqueNodeId,
-                        title: title,
-                        parentId: operation.parentId,
-                        position: operation.position ?? 0
-                    )
-                    events.append(try makeEvent(type: .insertNode, payload: payload, batchId: batchId))
                 }
+
+                let payload = InsertNodePayload(
+                    nodeId: resolvedNodeId,
+                    title: title,
+                    parentId: resolvedParentId,
+                    position: operation.position ?? 0
+                )
+                events.append(try makeEvent(type: .insertNode, payload: payload, batchId: batchId))
 
             case .renameNode:
                 guard let newTitle = operation.title else {
@@ -87,11 +81,13 @@ public struct OperationExecutor {
                     continue
                 }
 
-                let payload = RenameNodePayload(nodeId: operation.nodeId, newTitle: newTitle)
+                let targetId = resolveNodeId(operation.nodeId, mapping: nodeIdMapping)
+                let payload = RenameNodePayload(nodeId: targetId, newTitle: newTitle)
                 events.append(try makeEvent(type: .renameNode, payload: payload, batchId: batchId))
 
             case .deleteNode:
-                let payload = DeleteNodePayload(nodeId: operation.nodeId)
+                let targetId = resolveNodeId(operation.nodeId, mapping: nodeIdMapping)
+                let payload = DeleteNodePayload(nodeId: targetId)
                 events.append(try makeEvent(type: .deleteNode, payload: payload, batchId: batchId))
 
             case .reparentNode:
@@ -102,9 +98,12 @@ public struct OperationExecutor {
                     continue
                 }
 
+                let targetId = resolveNodeId(operation.nodeId, mapping: nodeIdMapping)
+                let resolvedParentId = resolveParentId(parentId, mapping: nodeIdMapping)
+
                 let payload = ReparentNodePayload(
-                    nodeId: operation.nodeId,
-                    newParentId: parentId,
+                    nodeId: targetId,
+                    newParentId: resolvedParentId,
                     newPosition: operation.position ?? 0
                 )
                 events.append(try makeEvent(type: .reparentNode, payload: payload, batchId: batchId))
@@ -112,6 +111,37 @@ public struct OperationExecutor {
         }
 
         return events
+    }
+
+    private func resolveGeneratedNodeId(
+        for originalId: String,
+        mapping: inout [String: String]
+    ) -> String {
+        if let existing = mapping[originalId] {
+            return existing
+        }
+
+        let generated = NodeID.generate()
+        mapping[originalId] = generated
+        return generated
+    }
+
+    private func resolveNodeId(
+        _ nodeId: String,
+        mapping: [String: String]
+    ) -> String {
+        mapping[nodeId] ?? nodeId
+    }
+
+    private func resolveParentId(
+        _ parentId: String?,
+        mapping: [String: String]
+    ) -> String? {
+        guard let parentId else { return nil }
+        if let mapped = mapping[parentId] {
+            return mapped
+        }
+        return parentId
     }
 
     private func makeEvent<P: Encodable>(type: NodeEvent.EventType, payload: P, batchId: String) throws -> NodeEvent {

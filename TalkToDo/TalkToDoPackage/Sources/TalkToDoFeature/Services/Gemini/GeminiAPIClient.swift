@@ -100,9 +100,20 @@ public struct GeminiAPIClient: GeminiClientProtocol {
             throw ClientError.serializationFailed
         }
 
-        var systemPrompt = "You are a voice-to-structure assistant for hierarchical to-do lists. "
-        systemPrompt += #"Always reply with JSON matching this schema: {"operations": [{"type": "insertNode|renameNode|deleteNode|reparentNode", "nodeId": string, "title": string?, "parentId": string?, "position": number?}]} "#
-        systemPrompt += "Use `insertNode` to add list items, setting titles to the task text. Use `reparentNode` to attach children to parents. Do not invent additional fields."
+        var systemPrompt = """
+        You are a voice-to-structure assistant for hierarchical to-do lists.
+        Always reply with JSON matching this schema: {"operations": [{"type": "insertNode|renameNode|deleteNode|reparentNode", "nodeId": string, "title": string?, "parentId": string?, "position": number?}]}.
+        Use `insertNode` to add list items, setting titles to the task text. Use `reparentNode` to attach children to parents.
+        Group related items under a parent node when the user implies a shared intent, project, or location. Always output the parent node before any child nodes so every `parentId` references an operation that already appeared earlier in the array.
+        Example for the utterance "I need to buy milk, eggs, spinach from DMart":
+        [
+          {"type":"insertNode","nodeId":"parent","title":"Buy groceries from DMart","parentId":null,"position":0},
+          {"type":"insertNode","nodeId":"milk","title":"Milk","parentId":"parent","position":0},
+          {"type":"insertNode","nodeId":"eggs","title":"Eggs","parentId":"parent","position":1},
+          {"type":"insertNode","nodeId":"spinach","title":"Spinach","parentId":"parent","position":2}
+        ]
+        Do not invent additional fields beyond those described.
+        """
         if let localeIdentifier {
             systemPrompt += " User locale: \(localeIdentifier)."
         }
