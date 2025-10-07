@@ -14,11 +14,16 @@ public struct ChangelogEntryRow: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top, spacing: 12) {
-                // Icon
-                Image(systemName: entry.icon)
-                    .font(.system(size: 20))
-                    .foregroundStyle(iconColor)
-                    .frame(width: 28, height: 28)
+                // Icon with circular background
+                ZStack {
+                    Circle()
+                        .fill(iconColor.opacity(0.15))
+                        .frame(width: 32, height: 32)
+
+                    Image(systemName: entry.icon)
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(iconColor)
+                }
 
                 VStack(alignment: .leading, spacing: 8) {
                     // Description

@@ -40,7 +40,11 @@ public struct ChangelogView: View {
                             }
                         }
                     }
+                    #if os(iOS)
                     .listStyle(.insetGrouped)
+                    #else
+                    .listStyle(.sidebar)
+                    #endif
                 }
             }
             .navigationTitle("Changelog")

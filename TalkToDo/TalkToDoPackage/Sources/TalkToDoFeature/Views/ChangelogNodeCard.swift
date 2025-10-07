@@ -67,25 +67,25 @@ public struct ChangelogNodeCard: View {
 
     private var cardBackground: some View {
         RoundedRectangle(cornerRadius: 8)
-            .fill(
-                LinearGradient(
-                    colors: [
-                        Color.white,
-                        Color(white: 0.98)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            )
+            .fill(actionTintedBackground)
+    }
+
+    private var actionTintedBackground: Color {
+        if isDeleted {
+            return Color.red.opacity(0.04)
+        } else if isCompleted {
+            return Color.green.opacity(0.04)
+        } else {
+            // Subtle warm tint for creates/edits/moves
+            return Color(white: 0.96)
+        }
     }
 
     private var cardBorder: some View {
         RoundedRectangle(cornerRadius: 8)
             .strokeBorder(
-                isDeleted
-                    ? Color.red.opacity(0.3)
-                    : Color.secondary.opacity(0.2),
-                lineWidth: 1
+                Color.secondary.opacity(0.12),
+                lineWidth: 0.5
             )
     }
 }
