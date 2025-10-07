@@ -11,6 +11,14 @@ public struct ChangelogEntry: Identifiable, Sendable {
     public let icon: String
     public let details: String?
 
+    // Card data for visual representation
+    public let cardTitle: String?          // Primary title to show in card
+    public let oldCardTitle: String?       // For renames: old title
+    public let newCardTitle: String?       // For renames: new title
+    public let isCardDeleted: Bool         // For deletes: strikethrough
+    public let isCardCompleted: Bool       // For completions: checkbox state
+    public let parentTitle: String?        // For context (created under...)
+
     @MainActor
     public init(from event: NodeEvent, nodeTree: NodeTree) {
         self.id = event.id
@@ -23,87 +31,111 @@ public struct ChangelogEntry: Identifiable, Sendable {
                 let payload = try JSONDecoder().decode(InsertNodePayload.self, from: event.payload)
                 self.nodeId = payload.nodeId
                 self.icon = "plus.circle.fill"
-                if let parentId = payload.parentId,
-                   let parent = nodeTree.findNode(id: parentId) {
-                    self.description = "Created '\(payload.title)' under '\(parent.title)'"
-                } else {
-                    self.description = "Created '\(payload.title)'"
-                }
+                self.description = "Created"
                 self.details = nil
+
+                // Card data
+                self.cardTitle = payload.title
+                self.oldCardTitle = nil
+                self.newCardTitle = nil
+                self.isCardDeleted = false
+                self.isCardCompleted = false
+                self.parentTitle = payload.parentId.flatMap { nodeTree.findNode(id: $0)?.title }
 
             case .renameNode:
                 let payload = try JSONDecoder().decode(RenameNodePayload.self, from: event.payload)
                 self.nodeId = payload.nodeId
                 self.icon = "pencil.circle.fill"
-                if let node = nodeTree.findNode(id: payload.nodeId) {
-                    // Current title might not reflect old title if this is historical
-                    // For now, we'll show what it was renamed to
-                    self.description = "Renamed to '\(payload.newTitle)'"
-                    self.details = "Node: \(payload.nodeId)"
-                } else {
-                    self.description = "Renamed to '\(payload.newTitle)'"
-                    self.details = "Node: \(payload.nodeId)"
-                }
+                self.description = "Renamed"
+                self.details = nil
+
+                // Card data
+                self.cardTitle = nil
+                self.oldCardTitle = payload.oldTitle
+                self.newCardTitle = payload.newTitle
+                self.isCardDeleted = false
+                self.isCardCompleted = false
+                self.parentTitle = nil
 
             case .deleteNode:
                 let payload = try JSONDecoder().decode(DeleteNodePayload.self, from: event.payload)
                 self.nodeId = payload.nodeId
                 self.icon = "trash.circle.fill"
-                // Node won't exist in current tree, just show ID
-                self.description = "Deleted node"
-                self.details = "Node ID: \(payload.nodeId)"
+                self.description = "Deleted"
+                self.details = nil
+
+                // Card data - get title from deleted node
+                let node = nodeTree.findNode(id: payload.nodeId)
+                self.cardTitle = node?.title ?? "Unknown"
+                self.oldCardTitle = nil
+                self.newCardTitle = nil
+                self.isCardDeleted = true
+                self.isCardCompleted = false
+                self.parentTitle = nil
 
             case .reparentNode:
                 let payload = try JSONDecoder().decode(ReparentNodePayload.self, from: event.payload)
                 self.nodeId = payload.nodeId
                 self.icon = "arrow.left.arrow.right.circle.fill"
-                if let node = nodeTree.findNode(id: payload.nodeId) {
-                    if let newParentId = payload.newParentId,
-                       let newParent = nodeTree.findNode(id: newParentId) {
-                        self.description = "Moved '\(node.title)' under '\(newParent.title)'"
-                    } else {
-                        self.description = "Moved '\(node.title)' to root level"
-                    }
-                    self.details = nil
-                } else {
-                    self.description = "Moved node"
-                    self.details = "Node ID: \(payload.nodeId)"
-                }
+                let node = nodeTree.findNode(id: payload.nodeId)
+                let newParent = payload.newParentId.flatMap { nodeTree.findNode(id: $0) }
+                self.description = newParent != nil ? "Moved" : "Moved to root"
+                self.details = nil
+
+                // Card data
+                self.cardTitle = node?.title ?? "Unknown"
+                self.oldCardTitle = nil
+                self.newCardTitle = nil
+                self.isCardDeleted = false
+                self.isCardCompleted = false
+                self.parentTitle = newParent?.title
 
             case .toggleComplete:
                 let payload = try JSONDecoder().decode(ToggleCompletePayload.self, from: event.payload)
                 self.nodeId = payload.nodeId
                 self.icon = payload.isCompleted ? "checkmark.circle.fill" : "circle"
-                if let node = nodeTree.findNode(id: payload.nodeId) {
-                    self.description = payload.isCompleted
-                        ? "Completed '\(node.title)'"
-                        : "Uncompleted '\(node.title)'"
-                    self.details = nil
-                } else {
-                    self.description = payload.isCompleted ? "Completed node" : "Uncompleted node"
-                    self.details = "Node ID: \(payload.nodeId)"
-                }
+                self.description = payload.isCompleted ? "Completed" : "Uncompleted"
+                self.details = nil
+
+                // Card data
+                let node = nodeTree.findNode(id: payload.nodeId)
+                self.cardTitle = node?.title ?? "Unknown"
+                self.oldCardTitle = nil
+                self.newCardTitle = nil
+                self.isCardDeleted = false
+                self.isCardCompleted = payload.isCompleted
+                self.parentTitle = nil
 
             case .toggleCollapse:
                 // Skip collapse events in changelog as they're UI-only
                 let payload = try JSONDecoder().decode(ToggleCollapsePayload.self, from: event.payload)
                 self.nodeId = payload.nodeId
                 self.icon = "chevron.down.circle.fill"
-                if let node = nodeTree.findNode(id: payload.nodeId) {
-                    self.description = node.isCollapsed
-                        ? "Collapsed '\(node.title)'"
-                        : "Expanded '\(node.title)'"
-                    self.details = nil
-                } else {
-                    self.description = "Toggled collapse"
-                    self.details = "Node ID: \(payload.nodeId)"
-                }
+                let node = nodeTree.findNode(id: payload.nodeId)
+                self.description = node?.isCollapsed ?? false ? "Collapsed" : "Expanded"
+                self.details = nil
+
+                // Card data
+                self.cardTitle = node?.title
+                self.oldCardTitle = nil
+                self.newCardTitle = nil
+                self.isCardDeleted = false
+                self.isCardCompleted = false
+                self.parentTitle = nil
 
             case .none:
                 self.nodeId = nil
                 self.icon = "questionmark.circle.fill"
                 self.description = "Unknown event"
                 self.details = nil
+
+                // Card data
+                self.cardTitle = nil
+                self.oldCardTitle = nil
+                self.newCardTitle = nil
+                self.isCardDeleted = false
+                self.isCardCompleted = false
+                self.parentTitle = nil
             }
         } catch {
             // Failed to decode payload
@@ -111,6 +143,14 @@ public struct ChangelogEntry: Identifiable, Sendable {
             self.icon = "exclamationmark.triangle.fill"
             self.description = "Failed to decode event"
             self.details = "Type: \(event.type)"
+
+            // Card data
+            self.cardTitle = nil
+            self.oldCardTitle = nil
+            self.newCardTitle = nil
+            self.isCardDeleted = false
+            self.isCardCompleted = false
+            self.parentTitle = nil
         }
     }
 

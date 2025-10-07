@@ -12,39 +12,73 @@ public struct ChangelogEntryRow: View {
     }
 
     public var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            // Icon
-            Image(systemName: entry.icon)
-                .font(.system(size: 20))
-                .foregroundStyle(iconColor)
-                .frame(width: 28, height: 28)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top, spacing: 12) {
+                // Icon
+                Image(systemName: entry.icon)
+                    .font(.system(size: 20))
+                    .foregroundStyle(iconColor)
+                    .frame(width: 28, height: 28)
 
-            VStack(alignment: .leading, spacing: 4) {
-                // Description
-                Text(entry.description)
-                    .font(fontPreference.selectedFont.body)
-                    .foregroundStyle(.primary)
-
-                // Details (if any)
-                if let details = entry.details {
-                    Text(details)
+                VStack(alignment: .leading, spacing: 8) {
+                    // Description
+                    Text(entry.description)
                         .font(fontPreference.selectedFont.caption)
                         .foregroundStyle(.secondary)
-                }
 
-                // Timestamp
-                HStack(spacing: 4) {
-                    Image(systemName: "clock")
-                        .font(.system(size: 10))
-                    Text(entry.formattedTimestamp)
-                        .font(fontPreference.selectedFont.caption)
+                    // Visual card(s)
+                    cardContent
+
+                    // Parent context (if any)
+                    if let parentTitle = entry.parentTitle {
+                        Text("under '\(parentTitle)'")
+                            .font(fontPreference.selectedFont.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+
+                    // Timestamp
+                    HStack(spacing: 4) {
+                        Image(systemName: "clock")
+                            .font(.system(size: 10))
+                        Text(entry.formattedTimestamp)
+                            .font(fontPreference.selectedFont.caption)
+                    }
+                    .foregroundStyle(.tertiary)
                 }
-                .foregroundStyle(.tertiary)
             }
-
-            Spacer()
         }
         .padding(.vertical, 8)
+    }
+
+    @ViewBuilder
+    private var cardContent: some View {
+        switch entry.type {
+        case .renameNode:
+            // Show before → after
+            if let oldTitle = entry.oldCardTitle, let newTitle = entry.newCardTitle {
+                HStack(spacing: 8) {
+                    ChangelogNodeCard(title: oldTitle)
+                        .frame(maxWidth: .infinity)
+
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: 14))
+                        .foregroundStyle(.secondary)
+
+                    ChangelogNodeCard(title: newTitle)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+
+        default:
+            // Show single card
+            if let title = entry.cardTitle {
+                ChangelogNodeCard(
+                    title: title,
+                    isDeleted: entry.isCardDeleted,
+                    isCompleted: entry.isCardCompleted
+                )
+            }
+        }
     }
 
     private var iconColor: Color {
@@ -112,7 +146,24 @@ public struct ChangelogEntryRow: View {
                     )),
                     batchId: "batch3"
                 ),
-                nodeTree: NodeTree()
+                nodeTree: {
+                    let tree = NodeTree()
+                    // Simulate a deleted node still in tree
+                    tree.rebuildFromEvents([
+                        NodeEvent(
+                            timestamp: Date().addingTimeInterval(-10000),
+                            type: .insertNode,
+                            payload: try! JSONEncoder().encode(InsertNodePayload(
+                                nodeId: "c4d3",
+                                title: "Old completed task",
+                                parentId: nil,
+                                position: 0
+                            )),
+                            batchId: "old"
+                        )
+                    ])
+                    return tree
+                }()
             )
         )
     }
