@@ -297,13 +297,21 @@ public actor SpeechRecognitionService {
             return
         }
 
-        if let transcript {
+        if let transcript, !transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             latestTranscription = transcript
         }
 
         if isFinal {
             if let continuation = finishContinuation {
-                continuation.resume(returning: latestTranscription)
+                let finalTranscript: String?
+                if let latestTranscription {
+                    finalTranscript = latestTranscription
+                } else if let transcript, !transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    finalTranscript = transcript
+                } else {
+                    finalTranscript = nil
+                }
+                continuation.resume(returning: finalTranscript)
                 finishContinuation = nil
             }
         }
