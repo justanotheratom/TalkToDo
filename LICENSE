@@ -1,21 +1,101 @@
-MIT License
+Business Source License 1.1
 
-Copyright (c) 2025 TalkToDo Contributors
+Parameters
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Licensor: TalkToDo Contributors
+Licensed Work: TalkToDo
+Additional Use Grant: None
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The Business Source License (this document, or the "License") is not an Open
+Source license. However, the Licensed Work may be made available under an Open
+Source License in the future, as determined by the Licensor.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+For the purpose of this License, the "Licensor" is the entity offering the
+Licensed Work under the terms of this License, and "Licensee" or "You" means
+any person or entity who downloads, copies, installs, uses, modifies, or
+redistributes the Licensed Work.
+
+The "Licensed Work" is the software and associated documentation offered under
+this License.
+
+Section 1. License Grant.
+
+1.1 Grant. Subject to the terms and conditions of this License, Licensor hereby
+grants You a non-exclusive, worldwide, non-transferable, non-sublicensable
+license to copy, modify, create derivative works, redistribute, and make
+non-production use of the Licensed Work.
+
+1.2 Production Use. This License does not grant You the right to make, run, or
+sell the Licensed Work for Production Use, except as expressly provided under
+Section 2 (Additional Use Grant).
+
+Section 2. Additional Use Grant.
+
+2.1 If the Additional Use Grant in the Parameters above states "None," there is
+no additional use grant beyond the rights set forth in Section 1.
+
+Section 3. Notices and Distribution.
+
+3.1 If You redistribute all or any portion of the Licensed Work, You must ensure
+that recipients of that redistribution receive access to this License, including
+the Parameters.
+
+3.2 You must not remove or alter any copyright, trademark, or other
+proprietary notices included in the Licensed Work, and any redistribution must
+carry the same notices as the original.
+
+Section 4. Modifications and Derivative Works.
+
+4.1 You may create modifications of or derivative works based upon the Licensed
+Work. You must include a prominent notice stating that You have modified the
+Licensed Work whenever you make such modifications available.
+
+4.2 You may only use the Licensed Work, including modifications and derivative
+works, for non-production purposes unless expressly permitted by this License.
+
+Section 5. Patents.
+
+5.1 Licensor grants You a patent license to make, have made, use, offer to sell,
+sell, import, and otherwise transfer the Licensed Work for non-production use,
+subject to the terms of this License.
+
+5.2 If You institute patent litigation against any entity alleging that the
+Licensed Work or any portion of the Licensed Work constitutes direct or
+contributory patent infringement, then any licenses granted to You under this
+License terminate as of the date such litigation is filed.
+
+Section 6. Future Licensing.
+
+6.1 The Licensor may, in its sole discretion, publish a future license change.
+Until then, the Licensed Work is only available under this License.
+
+Section 7. Termination.
+
+7.1 Termination for Breach. If You breach the terms of this License, this
+License terminates automatically with immediate effect.
+
+7.2 Effect of Termination. Upon termination, You must cease use and
+redistribution of the Licensed Work and any modifications or derivative works.
+
+7.3 Survival. Sections 3, 5, 7, and 8 will survive termination of this License.
+
+Section 8. Disclaimer of Warranty and Limitation of Liability.
+
+8.1 THE LICENSED WORK IS PROVIDED "AS IS," WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND
+NON-INFRINGEMENT. IN NO EVENT WILL LICENSOR BE LIABLE FOR DAMAGES OF ANY KIND,
+INCLUDING DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THE LICENSED WORK, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+
+Section 9. Governing Law.
+
+9.1 This License is governed by and construed in accordance with the laws of the
+jurisdiction specified by the Licensor, without regard to its conflict of law
+principles. If no jurisdiction is specified, the laws of the State of
+California, USA, will govern.
+
