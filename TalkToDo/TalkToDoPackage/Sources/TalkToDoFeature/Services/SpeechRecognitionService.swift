@@ -156,7 +156,7 @@ public actor SpeechRecognitionService {
         recordingSampleRate = recordingFormat.sampleRate
         do {
             let fileURL = FileManager.default.temporaryDirectory
-                .appendingPathComponent("talktodo-recording-\(UUID().uuidString).caf")
+                .appendingPathComponent("talktodo-recording-\(UUID().uuidString).wav")
             recordingFile = try AVAudioFile(forWriting: fileURL, settings: recordingFormat.settings)
             recordingURL = fileURL
         } catch {
