@@ -43,7 +43,7 @@ public struct NodeListView: View {
             .scrollContentBackground(.hidden)
             .background(Color(.systemGroupedBackground))
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .navigationBarLeading) {
                     visibilityToggleButton
                 }
             }
