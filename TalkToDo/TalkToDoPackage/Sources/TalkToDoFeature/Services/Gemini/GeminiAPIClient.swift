@@ -101,7 +101,8 @@ public struct GeminiAPIClient: GeminiClientProtocol {
         }
 
         var systemPrompt = "You are a voice-to-structure assistant for hierarchical to-do lists. "
-        systemPrompt += "Return JSON that matches the OperationPlan schema with an `operations` array. Each operation must include a unique `nodeId`."
+        systemPrompt += #"Always reply with JSON matching this schema: {"operations": [{"type": "insertNode|renameNode|deleteNode|reparentNode", "nodeId": string, "title": string?, "parentId": string?, "position": number?}]} "#
+        systemPrompt += "Use `insertNode` to add list items, setting titles to the task text. Use `reparentNode` to attach children to parents. Do not invent additional fields."
         if let localeIdentifier {
             systemPrompt += " User locale: \(localeIdentifier)."
         }
@@ -110,7 +111,6 @@ public struct GeminiAPIClient: GeminiClientProtocol {
             "model": "gemini-2.5-flash-lite",
             "temperature": 0.2,
             "response_format": ["type": "json_object"],
-            "max_output_tokens": 2048,
             "messages": [
                 [
                     "role": "system",
@@ -175,7 +175,26 @@ private struct GeminiChatCompletion: Decodable {
     }
 
     struct Message: Decodable {
-        let content: [Content]
+        let contents: [Content]?
+        let contentString: String?
+
+        enum CodingKeys: String, CodingKey {
+            case content
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            if let array = try? container.decode([Content].self, forKey: .content) {
+                contents = array
+                contentString = nil
+            } else if let string = try? container.decode(String.self, forKey: .content) {
+                contents = nil
+                contentString = string
+            } else {
+                contents = nil
+                contentString = nil
+            }
+        }
     }
 
     struct Content: Decodable {
@@ -186,10 +205,17 @@ private struct GeminiChatCompletion: Decodable {
     let choices: [Choice]
 
     var primaryText: String? {
-        choices
-            .flatMap { $0.message.content }
-            .first(where: { $0.type == "text" && ($0.text?.isEmpty == false) })?
-            .text
+        for choice in choices {
+            if let contents = choice.message.contents {
+                if let match = contents.first(where: { $0.type == "text" && ($0.text?.isEmpty == false) }) {
+                    return match.text
+                }
+            }
+            if let text = choice.message.contentString, !text.isEmpty {
+                return text
+            }
+        }
+        return nil
     }
 }
 
