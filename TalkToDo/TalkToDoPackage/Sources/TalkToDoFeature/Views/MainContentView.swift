@@ -106,11 +106,6 @@ public struct MainContentView: View {
                         onPressUp: handleMicrophoneRelease,
                         onSendText: handleTextInput
                     )
-                    #if os(iOS)
-                    .background(Color(uiColor: .systemBackground))
-                    #else
-                    .background(Color(.windowBackgroundColor))
-                    #endif
                 }
             }
             .navigationTitle("TalkToDo")

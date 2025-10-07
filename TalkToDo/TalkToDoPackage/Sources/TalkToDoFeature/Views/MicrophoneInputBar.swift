@@ -45,15 +45,17 @@ public struct MicrophoneInputBar: View {
             HStack(spacing: 12) {
                 if isTextInputMode {
                     textInputField
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .background {
+                            inputBarBackground
+                                .ignoresSafeArea(edges: .bottom)
+                        }
                 } else {
                     inputButton
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
                 }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background {
-                inputBarBackground
-                    .ignoresSafeArea(edges: .bottom)
             }
             .overlay(alignment: .top) {
                 if let feedback = microphoneFeedback {
@@ -112,6 +114,7 @@ public struct MicrophoneInputBar: View {
                     .symbolEffect(.pulse, options: .repeating, isActive: status == .recording)
             }
 
+            Spacer(minLength: 0)
             VStack(alignment: .leading, spacing: 2) {
                 Text(microphonePrimaryText)
                     .font(.subheadline.weight(.medium))
@@ -125,11 +128,21 @@ public struct MicrophoneInputBar: View {
             }
 
             Spacer(minLength: 0)
-
             if microphoneShowsProgress {
                 ProgressView()
                     .controlSize(.small)
                     .tint(microphoneBackgroundColor)
+            } else {
+                ZStack {
+                    Circle()
+                        .fill(microphoneBackgroundColor.gradient)
+                        .frame(width: 40, height: 40)
+                        .shadow(color: microphoneBackgroundColor.opacity(0.3), radius: 6, y: 3)
+                    
+                    Image(systemName: "keyboard")
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundStyle(.white)
+                }
             }
         }
         .frame(maxWidth: .infinity)
