@@ -34,7 +34,14 @@ public struct MicrophoneInputBar: View {
     }
 
     public var body: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 8) {
+            if let transcript = liveTranscript,
+               !transcript.isEmpty,
+               status == .recording {
+                liveTranscriptOverlay(transcript: transcript)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+
             HStack(spacing: 12) {
                 if isTextInputMode {
                     textInputField
@@ -136,14 +143,6 @@ public struct MicrophoneInputBar: View {
         .overlay {
             RoundedRectangle(cornerRadius: 22)
                 .strokeBorder(Color(red: 1.0, green: 0.478, blue: 0.361), lineWidth: 0.5)
-        }
-        .overlay(alignment: .topLeading) {
-            if let transcript = liveTranscript,
-               !transcript.isEmpty,
-               status == .recording {
-                liveTranscriptOverlay(transcript: transcript)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-            }
         }
         .contentShape(RoundedRectangle(cornerRadius: 22))
         .scaleEffect(status == .recording ? 1.02 : 1.0)
