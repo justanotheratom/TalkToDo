@@ -7,13 +7,15 @@ public struct Node: Identifiable, Equatable {
     public var children: [Node]
     public var isCollapsed: Bool
     public var isCompleted: Bool
+    public var isDeleted: Bool
 
-    public init(id: String, title: String, children: [Node] = [], isCollapsed: Bool = false, isCompleted: Bool = false) {
+    public init(id: String, title: String, children: [Node] = [], isCollapsed: Bool = false, isCompleted: Bool = false, isDeleted: Bool = false) {
         self.id = id
         self.title = title
         self.children = children
         self.isCollapsed = isCollapsed
         self.isCompleted = isCompleted
+        self.isDeleted = isDeleted
     }
 
     /// Find a node by ID in the tree (depth-first search)

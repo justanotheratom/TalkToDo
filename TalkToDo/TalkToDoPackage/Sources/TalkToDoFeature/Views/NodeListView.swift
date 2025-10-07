@@ -116,7 +116,9 @@ public struct NodeListView: View {
             ? nodeTree.rootNodes
             : nodeTree.rootNodes.filter { !$0.isCompleted }
 
-        return filtered.filter { !store.completedNodesToRemove.contains($0.id) }
+        return filtered
+            .filter { !$0.isDeleted }  // Filter out deleted nodes
+            .filter { !store.completedNodesToRemove.contains($0.id) }
     }
 
     private func handleCheckboxToggle(_ nodeId: String) {

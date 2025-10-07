@@ -59,10 +59,12 @@ public struct InsertNodePayload: Codable {
 
 public struct RenameNodePayload: Codable {
     public let nodeId: String
+    public let oldTitle: String
     public let newTitle: String
 
-    public init(nodeId: String, newTitle: String) {
+    public init(nodeId: String, oldTitle: String, newTitle: String) {
         self.nodeId = nodeId
+        self.oldTitle = oldTitle
         self.newTitle = newTitle
     }
 }

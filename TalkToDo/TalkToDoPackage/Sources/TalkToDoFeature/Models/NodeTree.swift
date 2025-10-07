@@ -94,18 +94,20 @@ public final class NodeTree {
     }
 
     private func applyDeleteNode(_ payload: DeleteNodePayload) {
-        // Remove from parent or root
-        if let parentId = findParent(of: payload.nodeId),
-           var parent = findNodeInTree(id: parentId) {
-            parent.children.removeAll { $0.id == payload.nodeId }
-            updateNode(parent)
-        } else {
-            rootNodes.removeAll { $0.id == payload.nodeId }
-        }
+        // Mark node as deleted (soft delete for changelog)
+        guard var node = findNodeInTree(id: payload.nodeId) else { return }
+        node.isDeleted = true
+        updateNode(node)
 
-        // Remove from nodeMap (and all descendants)
-        if let node = nodeMap[payload.nodeId] {
-            removeFromMap(node)
+        // Also mark all descendants as deleted
+        markDescendantsAsDeleted(node)
+    }
+
+    private func markDescendantsAsDeleted(_ node: Node) {
+        for var child in node.children {
+            child.isDeleted = true
+            updateNode(child)
+            markDescendantsAsDeleted(child)
         }
     }
 

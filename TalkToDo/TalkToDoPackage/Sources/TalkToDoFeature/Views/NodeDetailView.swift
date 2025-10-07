@@ -67,11 +67,13 @@ public struct NodeDetailView: View {
     }
 
     private var visibleChildren: [Node] {
-        if showCompleted {
-            return parentNode.children
+        let filtered = if showCompleted {
+            parentNode.children
         } else {
-            return parentNode.children.filter { !$0.isCompleted }
+            parentNode.children.filter { !$0.isCompleted }
         }
+
+        return filtered.filter { !$0.isDeleted }  // Filter out deleted nodes
     }
 }
 
@@ -169,10 +171,12 @@ struct NodeTreeRow: View {
     }
 
     private var visibleChildren: [Node] {
-        if showCompleted {
-            return node.children
+        let filtered = if showCompleted {
+            node.children
         } else {
-            return node.children.filter { !$0.isCompleted }
+            node.children.filter { !$0.isCompleted }
         }
+
+        return filtered.filter { !$0.isDeleted }  // Filter out deleted nodes
     }
 }

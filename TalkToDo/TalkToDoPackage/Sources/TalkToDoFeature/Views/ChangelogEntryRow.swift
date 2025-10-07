@@ -93,6 +93,7 @@ public struct ChangelogEntryRow: View {
                     type: .renameNode,
                     payload: try! JSONEncoder().encode(RenameNodePayload(
                         nodeId: "b7e1",
+                        oldTitle: "Buy groceries",
                         newTitle: "Buy organic groceries"
                     )),
                     batchId: "batch2"

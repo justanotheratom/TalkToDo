@@ -82,7 +82,11 @@ public struct OperationExecutor {
                 }
 
                 let targetId = resolveNodeId(operation.nodeId, mapping: nodeIdMapping)
-                let payload = RenameNodePayload(nodeId: targetId, newTitle: newTitle)
+
+                // Get old title from current node state
+                let oldTitle = eventStore.nodeTree.findNode(id: targetId)?.title ?? ""
+
+                let payload = RenameNodePayload(nodeId: targetId, oldTitle: oldTitle, newTitle: newTitle)
                 events.append(try makeEvent(type: .renameNode, payload: payload, batchId: batchId))
 
             case .deleteNode:
