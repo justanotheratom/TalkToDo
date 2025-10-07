@@ -49,16 +49,18 @@ public struct SettingsView: View {
                     }
                 }
 
-                Section("LLM Model") {
-                    ForEach(ModelCatalog.all) { model in
-                        ModelRow(
-                            model: model,
-                            isSelected: selectedModelSlug == model.slug,
-                            downloadState: downloadStates[model.slug] ?? .notStarted,
-                            onSelect: { selectedModelSlug = model.slug },
-                            onDownload: { downloadModel(model) },
-                            onDelete: { deleteModel(model) }
-                        )
+                if settingsStore.mode == .onDevice {
+                    Section("LLM Model") {
+                        ForEach(ModelCatalog.all) { model in
+                            ModelRow(
+                                model: model,
+                                isSelected: selectedModelSlug == model.slug,
+                                downloadState: downloadStates[model.slug] ?? .notStarted,
+                                onSelect: { selectedModelSlug = model.slug },
+                                onDownload: { downloadModel(model) },
+                                onDelete: { deleteModel(model) }
+                            )
+                        }
                     }
                 }
 
