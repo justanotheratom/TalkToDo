@@ -5,6 +5,7 @@ import TalkToDoShared
 #if os(iOS)
 import AVFoundation
 #endif
+@preconcurrency import Speech
 
 // MARK: - Timeout Helper
 
@@ -84,6 +85,25 @@ public final class VoiceInputStore {
 
     public init(speechService: SpeechRecognitionService = SpeechRecognitionService()) {
         self.speechService = speechService
+
+        // Seed permission state from system so first recording doesn't block on refresh
+        let speechStatus = SpeechRecognitionService.AuthorizationStatus(SFSpeechRecognizer.authorizationStatus())
+        updateSpeechPermission(with: speechStatus)
+
+        #if os(iOS)
+        switch AVAudioApplication.shared.recordPermission {
+        case .granted:
+            microphonePermissionState = .granted
+        case .denied:
+            microphonePermissionState = .denied
+        case .undetermined:
+            microphonePermissionState = .unknown
+        @unknown default:
+            microphonePermissionState = .unknown
+        }
+        #else
+        microphonePermissionState = .granted
+        #endif
     }
 
     deinit {
@@ -194,9 +214,30 @@ public final class VoiceInputStore {
     public func startRecording(onComplete: @escaping (RecordingMetadata) -> Void) async {
         guard !isRecording, !isTranscribing else { return }
 
+        let logger = AppLogger.speech()
+        let startTimestamp = Date()
+        let isoFormatter: ISO8601DateFormatter = {
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            return formatter
+        }()
+        let timestamp = isoFormatter.string(from: startTimestamp)
+        logger.log(event: "voice:startRecordingInvoked", data: [
+            "speechPermission": String(describing: speechPermissionState),
+            "microphonePermission": String(describing: microphonePermissionState),
+            "isRequesting": isRequestingPermission,
+            "timestamp": timestamp
+        ])
+
         // Ensure permissions
         if speechPermissionState != .granted {
+            logger.log(event: "voice:startRecordingPrefetchingPermissions", data: [:])
             await prefetchPermissions()
+            logger.log(event: "voice:startRecordingPrefetchCompleted", data: [
+                "speechPermission": String(describing: speechPermissionState),
+                "microphonePermission": String(describing: microphonePermissionState),
+                "elapsedMs": Int(Date().timeIntervalSince(startTimestamp) * 1000)
+            ])
         }
 
         guard speechPermissionState == .granted else {
@@ -212,8 +253,15 @@ public final class VoiceInputStore {
         #endif
 
         do {
+            logger.log(event: "voice:startRecordingStartingSpeech", data: [:])
             let locale = Locale.current
             try await speechService.start(locale: locale)
+            let elapsedMs = Int(Date().timeIntervalSince(startTimestamp) * 1000)
+            logger.log(event: "voice:startRecordingSpeechStarted", data: [
+                "elapsedMs": elapsedMs,
+                "locale": locale.identifier,
+                "timestamp": isoFormatter.string(from: Date())
+            ])
             completionHandler = onComplete
             recordingLocaleIdentifier = locale.identifier
             isRecording = true
@@ -225,6 +273,10 @@ public final class VoiceInputStore {
         } catch {
             completionHandler = nil
             recordingLocaleIdentifier = nil
+            logger.log(event: "voice:startRecordingFailed", data: [
+                "elapsedMs": Int(Date().timeIntervalSince(startTimestamp) * 1000),
+                "timestamp": isoFormatter.string(from: Date())
+            ])
             await handleSpeechError(error)
         }
     }

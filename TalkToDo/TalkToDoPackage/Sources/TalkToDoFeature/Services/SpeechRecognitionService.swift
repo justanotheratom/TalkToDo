@@ -104,6 +104,7 @@ public actor SpeechRecognitionService {
 
     func start(locale overrideLocale: Locale? = nil) async throws {
         let logger = AppLogger.speech()
+        let startTime = Date()
         logger.log(event: "speech:startRequested", data: [
             "state": String(describing: state),
             "overrideLocale": overrideLocale?.identifier ?? "nil"
@@ -136,12 +137,23 @@ public actor SpeechRecognitionService {
         #if os(iOS)
         try await MainActor.run {
             let audioSession = AVAudioSession.sharedInstance()
+            logger.log(event: "speech:audioSessionConfigStart", data: [:])
+
+            var options: AVAudioSession.CategoryOptions = [.duckOthers]
+            #if os(iOS)
+            options.insert(.allowBluetooth)
+            options.insert(.defaultToSpeaker)
+            #endif
+
             try audioSession.setCategory(
-                .playAndRecord,
+                .record,
                 mode: .measurement,
-                options: [.duckOthers, .defaultToSpeaker, .allowBluetoothA2DP]
+                options: options
             )
-            try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+            try audioSession.setActive(true, options: [.notifyOthersOnDeactivation])
+            logger.log(event: "speech:audioSessionConfigEnd", data: [
+                "elapsedMs": Int(Date().timeIntervalSince(startTime) * 1000)
+            ])
         }
         #endif
 
@@ -174,9 +186,12 @@ public actor SpeechRecognitionService {
 
         audioEngine.prepare()
         do {
+            let engineStartTime = Date()
             try audioEngine.start()
             logger.log(event: "speech:audioEngineStarted", data: [
-                "sampleRate": recordingFormat.sampleRate
+                "sampleRate": recordingFormat.sampleRate,
+                "elapsedMs": Int(Date().timeIntervalSince(engineStartTime) * 1000),
+                "totalMs": Int(Date().timeIntervalSince(startTime) * 1000)
             ])
         } catch {
             inputNode.removeTap(onBus: 0)
@@ -185,6 +200,9 @@ public actor SpeechRecognitionService {
 
         recordingStartDate = Date()
         state = .recording
+        logger.log(event: "speech:startCompleted", data: [
+            "totalMs": Int(Date().timeIntervalSince(startTime) * 1000)
+        ])
 
         recognitionTask = recognizer.recognitionTask(with: request) { [weak self] result, error in
             guard let self else { return }
