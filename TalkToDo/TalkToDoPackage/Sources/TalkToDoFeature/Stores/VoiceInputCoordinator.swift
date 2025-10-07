@@ -67,9 +67,10 @@ public final class VoiceInputCoordinator {
             AppLogger.ui().log(event: "voiceCoordinator:callingPipeline", data: [
                 "mode": currentMode.rawValue
             ])
+            let context = makeProcessingContext(nodeContext: nodeContext)
             let result = try await pipeline.process(
                 metadata: metadata,
-                nodeContext: nodeContext
+                context: context
             )
             AppLogger.ui().log(event: "voiceCoordinator:pipelineReturned", data: [
                 "operationCount": result.operations.count
@@ -124,6 +125,12 @@ public final class VoiceInputCoordinator {
             AppLogger.ui().logError(event: "voiceCoordinator:undoFailed", error: error)
             return false
         }
+    }
+
+    private func makeProcessingContext(nodeContext: NodeContext?) -> ProcessingContext {
+        let history = (try? eventStore.eventLogSinceLaunch()) ?? []
+        let snapshot = eventStore.currentSnapshot()
+        return ProcessingContext(nodeContext: nodeContext, eventLog: history, nodeSnapshot: snapshot)
     }
 
 }

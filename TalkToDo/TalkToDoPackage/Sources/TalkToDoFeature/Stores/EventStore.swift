@@ -10,10 +10,13 @@ import TalkToDoShared
 public final class EventStore {
     private let modelContext: ModelContext
     private let nodeTree: NodeTree
+    private let launchTimestamp: Date
+    private let eventHistoryLimit = 20
 
     public init(modelContext: ModelContext, nodeTree: NodeTree) {
         self.modelContext = modelContext
         self.nodeTree = nodeTree
+        self.launchTimestamp = Date()
     }
 
     // MARK: - Event Appending
@@ -123,6 +126,109 @@ public final class EventStore {
 
         AppLogger.data().log(event: "eventStore:deleteAllData", data: [:])
     }
+
+    // MARK: - Event History
+
+    public func eventLogSinceLaunch() throws -> [EventLogEntry] {
+        let descriptor = FetchDescriptor<NodeEvent>(
+            predicate: #Predicate { $0.timestamp >= launchTimestamp },
+            sortBy: [SortDescriptor(\.timestamp, order: .forward)]
+        )
+        let events = try modelContext.fetch(descriptor)
+
+        let entries: [EventLogEntry] = events.compactMap { event -> EventLogEntry? in
+            guard let type = event.eventType else { return nil }
+            do {
+                switch type {
+                case .insertNode:
+                    let payload = try JSONDecoder().decode(InsertNodePayload.self, from: event.payload)
+                    return EventLogEntry(
+                        timestamp: event.timestamp,
+                        type: type,
+                        nodeId: payload.nodeId,
+                        title: payload.title,
+                        parentId: payload.parentId,
+                        position: payload.position,
+                        newTitle: nil,
+                        newParentId: nil,
+                        newPosition: nil
+                    )
+                case .renameNode:
+                    let payload = try JSONDecoder().decode(RenameNodePayload.self, from: event.payload)
+                    return EventLogEntry(
+                        timestamp: event.timestamp,
+                        type: type,
+                        nodeId: payload.nodeId,
+                        title: nil,
+                        parentId: nil,
+                        position: nil,
+                        newTitle: payload.newTitle,
+                        newParentId: nil,
+                        newPosition: nil
+                    )
+                case .deleteNode:
+                    let payload = try JSONDecoder().decode(DeleteNodePayload.self, from: event.payload)
+                    return EventLogEntry(
+                        timestamp: event.timestamp,
+                        type: type,
+                        nodeId: payload.nodeId,
+                        title: nil,
+                        parentId: nil,
+                        position: nil,
+                        newTitle: nil,
+                        newParentId: nil,
+                        newPosition: nil
+                    )
+                case .reparentNode:
+                    let payload = try JSONDecoder().decode(ReparentNodePayload.self, from: event.payload)
+                    return EventLogEntry(
+                        timestamp: event.timestamp,
+                        type: type,
+                        nodeId: payload.nodeId,
+                        title: nil,
+                        parentId: nil,
+                        position: nil,
+                        newTitle: nil,
+                        newParentId: payload.newParentId,
+                        newPosition: payload.newPosition
+                    )
+                case .toggleCollapse:
+                    let payload = try JSONDecoder().decode(ToggleCollapsePayload.self, from: event.payload)
+                    return EventLogEntry(
+                        timestamp: event.timestamp,
+                        type: type,
+                        nodeId: payload.nodeId,
+                        title: nil,
+                        parentId: nil,
+                        position: nil,
+                        newTitle: nil,
+                        newParentId: nil,
+                        newPosition: nil
+                    )
+                }
+            } catch {
+                AppLogger.data().logError(event: "eventStore:historyDecodeFailed", error: error, data: [
+                    "eventType": event.type
+                ])
+                return nil
+            }
+        }
+
+        if entries.count > eventHistoryLimit {
+            AppLogger.data().log(event: "eventStore:historyTrimmed", data: [
+                "requested": entries.count,
+                "limit": eventHistoryLimit
+            ])
+        }
+
+        return Array(entries.suffix(eventHistoryLimit))
+    }
+
+    public func currentSnapshot() -> [SnapshotNode] {
+        nodeTree.rootNodes.map { node in
+            SnapshotNode(node: node)
+        }
+    }
 }
 
 // MARK: - Environment Key
@@ -130,4 +236,61 @@ public final class EventStore {
 @available(iOS 18.0, macOS 15.0, *)
 extension EnvironmentValues {
     @Entry public var eventStore: EventStore? = nil
+}
+
+public struct EventLogEntry: Codable, Sendable {
+    public let timestamp: Date
+    public let type: NodeEvent.EventType
+    public let nodeId: String?
+    public let title: String?
+    public let parentId: String?
+    public let position: Int?
+    public let newTitle: String?
+    public let newParentId: String?
+    public let newPosition: Int?
+
+    public init(
+        timestamp: Date,
+        type: NodeEvent.EventType,
+        nodeId: String?,
+        title: String?,
+        parentId: String?,
+        position: Int?,
+        newTitle: String?,
+        newParentId: String?,
+        newPosition: Int?
+    ) {
+        self.timestamp = timestamp
+        self.type = type
+        self.nodeId = nodeId
+        self.title = title
+        self.parentId = parentId
+        self.position = position
+        self.newTitle = newTitle
+        self.newParentId = newParentId
+        self.newPosition = newPosition
+    }
+}
+
+public struct SnapshotNode: Codable, Sendable {
+    public let id: String
+    public let title: String
+    public let isCollapsed: Bool
+    public let children: [SnapshotNode]
+
+    public init(id: String, title: String, isCollapsed: Bool, children: [SnapshotNode]) {
+        self.id = id
+        self.title = title
+        self.isCollapsed = isCollapsed
+        self.children = children
+    }
+
+    init(node: Node) {
+        self.init(
+            id: node.id,
+            title: node.title,
+            isCollapsed: node.isCollapsed,
+            children: node.children.map { SnapshotNode(node: $0) }
+        )
+    }
 }

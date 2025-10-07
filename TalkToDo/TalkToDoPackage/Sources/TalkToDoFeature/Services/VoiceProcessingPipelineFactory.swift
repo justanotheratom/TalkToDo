@@ -20,7 +20,7 @@ private struct MissingRemoteVoicePipeline: VoiceProcessingPipeline, Sendable {
 
     func process(
         metadata: RecordingMetadata,
-        nodeContext: NodeContext?
+        context: ProcessingContext
     ) async throws -> OperationGenerationResult {
         throw error
     }
@@ -31,7 +31,7 @@ private struct MissingRemoteTextPipeline: TextProcessingPipeline, Sendable {
 
     func process(
         text: String,
-        nodeContext: NodeContext?
+        context: ProcessingContext
     ) async throws -> OperationGenerationResult {
         throw error
     }

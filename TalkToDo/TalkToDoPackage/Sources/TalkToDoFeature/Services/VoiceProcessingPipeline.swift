@@ -1,4 +1,5 @@
 import Foundation
+import TalkToDoShared
 
 public struct RecordingMetadata: Sendable {
     public let transcript: String?
@@ -32,6 +33,22 @@ public struct RecordingMetadata: Sendable {
     }
 }
 
+public struct ProcessingContext: Sendable {
+    public let nodeContext: NodeContext?
+    public let eventLog: [EventLogEntry]
+    public let nodeSnapshot: [SnapshotNode]
+
+    public init(nodeContext: NodeContext?, eventLog: [EventLogEntry], nodeSnapshot: [SnapshotNode]) {
+        self.nodeContext = nodeContext
+        self.eventLog = eventLog
+        self.nodeSnapshot = nodeSnapshot
+    }
+
+    public static func empty() -> ProcessingContext {
+        ProcessingContext(nodeContext: nil, eventLog: [], nodeSnapshot: [])
+    }
+}
+
 public struct OperationGenerationResult: Sendable {
     public let transcript: String
     public let operations: [Operation]
@@ -45,13 +62,13 @@ public struct OperationGenerationResult: Sendable {
 public protocol VoiceProcessingPipeline: Sendable {
     func process(
         metadata: RecordingMetadata,
-        nodeContext: NodeContext?
+        context: ProcessingContext
     ) async throws -> OperationGenerationResult
 }
 
 public protocol TextProcessingPipeline: Sendable {
     func process(
         text: String,
-        nodeContext: NodeContext?
+        context: ProcessingContext
     ) async throws -> OperationGenerationResult
 }

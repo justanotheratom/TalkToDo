@@ -21,7 +21,7 @@ public struct GeminiTextPipeline: TextProcessingPipeline {
 
     public func process(
         text: String,
-        nodeContext: NodeContext?
+        context: ProcessingContext
     ) async throws -> OperationGenerationResult {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
@@ -33,7 +33,9 @@ public struct GeminiTextPipeline: TextProcessingPipeline {
             let response = try await client.submitTask(
                 audioURL: nil,
                 transcript: trimmed,
-                localeIdentifier: Locale.current.identifier
+                localeIdentifier: Locale.current.identifier,
+                eventLog: context.eventLog,
+                nodeSnapshot: context.nodeSnapshot
             )
 
             let transcript = response.transcript ?? trimmed

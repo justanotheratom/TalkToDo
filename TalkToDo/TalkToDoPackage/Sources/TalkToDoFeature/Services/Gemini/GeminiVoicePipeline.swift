@@ -21,13 +21,15 @@ public struct GeminiVoicePipeline: VoiceProcessingPipeline {
 
     public func process(
         metadata: RecordingMetadata,
-        nodeContext: NodeContext?
+        context: ProcessingContext
     ) async throws -> OperationGenerationResult {
         do {
             let response = try await client.submitTask(
                 audioURL: metadata.audioURL,
                 transcript: metadata.transcript,
-                localeIdentifier: metadata.localeIdentifier
+                localeIdentifier: metadata.localeIdentifier,
+                eventLog: context.eventLog,
+                nodeSnapshot: context.nodeSnapshot
             )
 
             let transcript = response.transcript ?? metadata.transcript ?? ""

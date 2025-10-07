@@ -4,7 +4,9 @@ public protocol GeminiClientProtocol: Sendable {
     func submitTask(
         audioURL: URL?,
         transcript: String?,
-        localeIdentifier: String?
+        localeIdentifier: String?,
+        eventLog: [EventLogEntry],
+        nodeSnapshot: [SnapshotNode]
     ) async throws -> GeminiStructuredResponse
 }
 
@@ -63,13 +65,49 @@ public struct GeminiAPIClient: GeminiClientProtocol {
     public func submitTask(
         audioURL: URL?,
         transcript: String?,
-        localeIdentifier: String?
+        localeIdentifier: String?,
+        eventLog: [EventLogEntry],
+        nodeSnapshot: [SnapshotNode]
     ) async throws -> GeminiStructuredResponse {
         guard !configuration.apiKey.isEmpty else {
             throw ClientError.missingAPIKey
         }
 
         var userContent: [[String: Any]] = []
+
+        if !eventLog.isEmpty {
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .iso8601
+            let logString: String
+            if let data = try? encoder.encode(eventLog),
+               let json = String(data: data, encoding: .utf8) {
+                logString = json
+            } else {
+                logString = "[]"
+            }
+
+            userContent.append([
+                "type": "text",
+                "text": "Event log since app start (JSON array): \(logString)"
+            ])
+        }
+
+        if !nodeSnapshot.isEmpty {
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .iso8601
+            let snapshotString: String
+            if let data = try? encoder.encode(nodeSnapshot),
+               let json = String(data: data, encoding: .utf8) {
+                snapshotString = json
+            } else {
+                snapshotString = "[]"
+            }
+
+            userContent.append([
+                "type": "text",
+                "text": "Current todo tree snapshot (JSON array): \(snapshotString)"
+            ])
+        }
 
         if let audioURL {
             guard FileManager.default.fileExists(atPath: audioURL.path) else {
@@ -104,7 +142,11 @@ public struct GeminiAPIClient: GeminiClientProtocol {
         You are a voice-to-structure assistant for hierarchical to-do lists.
         Always reply with JSON matching this schema: {"operations": [{"type": "insertNode|renameNode|deleteNode|reparentNode", "nodeId": string, "title": string?, "parentId": string?, "position": number?}]}.
         Use `insertNode` to add list items, setting titles to the task text. Use `reparentNode` to attach children to parents.
-        Group related items under a parent node when the user implies a shared intent, project, or location. Always output the parent node before any child nodes so every `parentId` references an operation that already appeared earlier in the array.
+        The user message may be accompanied by:
+          - A chronological event log describing prior insert/rename/delete/reparent actions from this session.
+          - A current hierarchical snapshot of all todo nodes.
+        Use that context to resolve references to existing todos (e.g., "mark it done" should match an item from the snapshot/log).
+        Always output the parent node before any child nodes so every `parentId` references an operation that already appeared earlier in the array.
         Example for the utterance "I need to buy milk, eggs, spinach from DMart":
         [
           {"type":"insertNode","nodeId":"parent","title":"Buy groceries from DMart","parentId":null,"position":0},

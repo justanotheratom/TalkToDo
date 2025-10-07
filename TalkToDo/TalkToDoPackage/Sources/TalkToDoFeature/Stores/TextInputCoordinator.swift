@@ -10,6 +10,7 @@ public final class TextInputCoordinator {
     public var processingError: String?
     public var processingText: String?
 
+    @ObservationIgnored private let eventStore: EventStore
     @ObservationIgnored private var pipeline: AnyTextProcessingPipeline
     @ObservationIgnored private var currentMode: ProcessingMode
     @ObservationIgnored private let operationExecutor: OperationExecutor
@@ -20,6 +21,7 @@ public final class TextInputCoordinator {
         mode: ProcessingMode,
         undoManager: UndoManager
     ) {
+        self.eventStore = eventStore
         self.pipeline = pipeline
         self.currentMode = mode
         self.operationExecutor = OperationExecutor(eventStore: eventStore, undoManager: undoManager)
@@ -48,7 +50,8 @@ public final class TextInputCoordinator {
         processingText = trimmed
 
         do {
-            let result = try await pipeline.process(text: trimmed, nodeContext: nodeContext)
+            let context = makeProcessingContext(nodeContext: nodeContext)
+            let result = try await pipeline.process(text: trimmed, context: context)
             let summary = try operationExecutor.execute(operations: result.operations)
 
             isProcessing = false
@@ -72,5 +75,11 @@ public final class TextInputCoordinator {
                 }
             }
         }
+    }
+
+    private func makeProcessingContext(nodeContext: NodeContext?) -> ProcessingContext {
+        let history = (try? eventStore.eventLogSinceLaunch()) ?? []
+        let snapshot = eventStore.currentSnapshot()
+        return ProcessingContext(nodeContext: nodeContext, eventLog: history, nodeSnapshot: snapshot)
     }
 }

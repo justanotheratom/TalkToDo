@@ -21,7 +21,7 @@ public struct OnDeviceVoicePipeline: VoiceProcessingPipeline {
 
     public func process(
         metadata: RecordingMetadata,
-        nodeContext: NodeContext?
+        context: ProcessingContext
     ) async throws -> OperationGenerationResult {
         guard let transcript = metadata.transcript?.trimmingCharacters(in: .whitespacesAndNewlines),
               !transcript.isEmpty else {
@@ -31,12 +31,12 @@ public struct OnDeviceVoicePipeline: VoiceProcessingPipeline {
 
         AppLogger.ui().log(event: "pipeline:onDevice:start", data: [
             "transcriptLength": transcript.count,
-            "hasNodeContext": nodeContext != nil
+            "hasNodeContext": context.nodeContext != nil
         ])
 
         let plan = try await llmService.generateOperations(
             from: transcript,
-            nodeContext: nodeContext
+            nodeContext: context.nodeContext
         )
 
         AppLogger.ui().log(event: "pipeline:onDevice:success", data: [

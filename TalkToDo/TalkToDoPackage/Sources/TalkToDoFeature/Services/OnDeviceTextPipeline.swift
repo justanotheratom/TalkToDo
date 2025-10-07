@@ -21,7 +21,7 @@ public struct OnDeviceTextPipeline: TextProcessingPipeline {
 
     public func process(
         text: String,
-        nodeContext: NodeContext?
+        context: ProcessingContext
     ) async throws -> OperationGenerationResult {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
@@ -35,7 +35,7 @@ public struct OnDeviceTextPipeline: TextProcessingPipeline {
 
         let plan = try await llmService.generateOperations(
             from: trimmed,
-            nodeContext: nodeContext
+            nodeContext: context.nodeContext
         )
 
         AppLogger.ui().log(event: "textPipeline:onDevice:success", data: [

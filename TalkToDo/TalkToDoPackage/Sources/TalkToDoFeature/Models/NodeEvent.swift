@@ -26,7 +26,7 @@ public final class NodeEvent {
         self.batchId = batchId
     }
 
-    public enum EventType: String, Codable {
+    public enum EventType: String, Codable, Sendable {
         case insertNode
         case renameNode
         case deleteNode

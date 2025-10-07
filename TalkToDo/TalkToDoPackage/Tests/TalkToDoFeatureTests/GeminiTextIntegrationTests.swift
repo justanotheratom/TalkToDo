@@ -14,7 +14,8 @@ final class GeminiTextIntegrationTests: XCTestCase {
         let pipeline = GeminiTextPipeline(client: client)
 
         let prompt = "Create a grocery todo list with milk, eggs, and bread"
-        let result = try await pipeline.process(text: prompt, nodeContext: nil)
+        let context = ProcessingContext(nodeContext: nil, eventLog: [], nodeSnapshot: [])
+        let result = try await pipeline.process(text: prompt, context: context)
 
         XCTAssertFalse(result.operations.isEmpty, "Expected Gemini to return at least one operation")
         XCTAssertFalse(result.transcript.isEmpty)
