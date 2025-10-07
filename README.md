@@ -50,6 +50,19 @@ open TalkToDo.xcodeproj
 - **iOS**: Select an iOS device or simulator and press Cmd+R
 - **macOS**: Select "My Mac" and press Cmd+R
 
+### 5. (Optional) Configure Gemini Remote Processing
+
+1. Visit [Google AI Studio](https://aistudio.google.com/app/apikey) (or the Gemini section of Google Cloud) and create an API key for the Gemini 2.5 Flash Lite model.
+2. Copy the generated key and keep it private.
+3. Export the key in your shell before running the app or tests:
+
+   ```bash
+   export GEMINI_API_KEY="your-gemini-key"
+   ```
+
+   Alternatively, add `GEMINI_API_KEY` to your Xcode scheme's Run action environment variables.
+4. Launch TalkToDo and enable "Remote (Gemini)" in Settings to route voice processing through the remote pipeline. Without a key, the app automatically falls back to on-device processing.
+
 ## Architecture
 
 ### Event Sourcing
