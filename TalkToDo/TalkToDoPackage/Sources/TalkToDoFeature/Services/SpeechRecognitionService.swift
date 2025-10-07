@@ -75,16 +75,13 @@ public actor SpeechRecognitionService {
 
     private var state: State = .idle
     private var speechRecognizer: SFSpeechRecognizer?
-    private var audioEngine: AVAudioEngine?
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
     private var finishContinuation: CheckedContinuation<String?, Error>?
     private var latestTranscription: String?
     private var localeProvider: () -> Locale
-    private var recordingFile: AVAudioFile?
-    private var recordingURL: URL?
-    private var recordingStartDate: Date?
-    private var recordingSampleRate: Double?
+    private var sessionConfigured = false
+    private var sessionActive = false
 
     public init(localeProvider: @escaping () -> Locale = { Locale.current }) {
         self.localeProvider = localeProvider
@@ -112,8 +109,17 @@ public actor SpeechRecognitionService {
         guard state == .idle else { throw ServiceError.recognitionAlreadyRunning }
 
         let locale = overrideLocale ?? localeProvider()
-        guard let recognizer = SFSpeechRecognizer(locale: locale) else {
-            throw ServiceError.recognizerUnavailable
+        let recognizer: SFSpeechRecognizer
+        if let existing = speechRecognizer, existing.locale == locale {
+            recognizer = existing
+        } else if let existing = speechRecognizer, overrideLocale == nil {
+            recognizer = existing
+        } else {
+            guard let created = SFSpeechRecognizer(locale: locale) else {
+                throw ServiceError.recognizerUnavailable
+            }
+            speechRecognizer = created
+            recognizer = created
         }
         logger.log(event: "speech:recognizerInitialized", data: [
             "locale": locale.identifier,
@@ -129,80 +135,45 @@ public actor SpeechRecognitionService {
             throw ServiceError.recognizerUnavailable
         }
 
-        let audioEngine = AVAudioEngine()
         let request = SFSpeechAudioBufferRecognitionRequest()
         request.shouldReportPartialResults = true
         request.requiresOnDeviceRecognition = true
 
         #if os(iOS)
-        try await MainActor.run {
-            let audioSession = AVAudioSession.sharedInstance()
-            logger.log(event: "speech:audioSessionConfigStart", data: [:])
+        logger.log(event: "speech:audioSessionConfigStart", data: [
+            "configured": sessionConfigured,
+            "active": sessionActive
+        ])
 
-            var options: AVAudioSession.CategoryOptions = [.duckOthers]
-            #if os(iOS)
-            options.insert(.allowBluetooth)
-            options.insert(.defaultToSpeaker)
-            #endif
-
-            try audioSession.setCategory(
-                .record,
-                mode: .measurement,
-                options: options
-            )
-            try audioSession.setActive(true, options: [.notifyOthersOnDeactivation])
-            logger.log(event: "speech:audioSessionConfigEnd", data: [
-                "elapsedMs": Int(Date().timeIntervalSince(startTime) * 1000)
-            ])
+        if !sessionConfigured {
+            try await MainActor.run {
+                let audioSession = AVAudioSession.sharedInstance()
+                try audioSession.setCategory(
+                    .playAndRecord,
+                    mode: .default,
+                    options: [.duckOthers]
+                )
+            }
+            sessionConfigured = true
         }
+
+        if !sessionActive {
+            try await MainActor.run {
+                let audioSession = AVAudioSession.sharedInstance()
+                try audioSession.setActive(true, options: [.notifyOthersOnDeactivation])
+            }
+            sessionActive = true
+        }
+
+        logger.log(event: "speech:audioSessionConfigEnd", data: [
+            "elapsedMs": Int(Date().timeIntervalSince(startTime) * 1000),
+            "active": sessionActive
+        ])
         #endif
 
         recognitionRequest = request
-        self.audioEngine = audioEngine
         speechRecognizer = recognizer
         latestTranscription = nil
-
-        let inputNode = audioEngine.inputNode
-
-        let recordingFormat = inputNode.outputFormat(forBus: 0)
-        recordingSampleRate = recordingFormat.sampleRate
-        do {
-            let fileURL = FileManager.default.temporaryDirectory
-                .appendingPathComponent("talktodo-recording-\(UUID().uuidString).wav")
-            recordingFile = try AVAudioFile(forWriting: fileURL, settings: recordingFormat.settings)
-            recordingURL = fileURL
-        } catch {
-            recordingFile = nil
-            recordingURL = nil
-        }
-        inputNode.removeTap(onBus: 0)
-        let recordingFileReference = recordingFile
-        inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { buffer, _ in
-            request.append(buffer)
-            if let file = recordingFileReference {
-                try? file.write(from: buffer)
-            }
-        }
-
-        audioEngine.prepare()
-        do {
-            let engineStartTime = Date()
-            try audioEngine.start()
-            logger.log(event: "speech:audioEngineStarted", data: [
-                "sampleRate": recordingFormat.sampleRate,
-                "elapsedMs": Int(Date().timeIntervalSince(engineStartTime) * 1000),
-                "totalMs": Int(Date().timeIntervalSince(startTime) * 1000)
-            ])
-        } catch {
-            inputNode.removeTap(onBus: 0)
-            throw ServiceError.audioEngineUnavailable
-        }
-
-        recordingStartDate = Date()
-        state = .recording
-        logger.log(event: "speech:startCompleted", data: [
-            "totalMs": Int(Date().timeIntervalSince(startTime) * 1000)
-        ])
 
         recognitionTask = recognizer.recognitionTask(with: request) { [weak self] result, error in
             guard let self else { return }
@@ -211,12 +182,19 @@ public actor SpeechRecognitionService {
             let errorInfo = (error as NSError?)
             Task { await self.processRecognitionUpdate(transcript: transcript, isFinal: isFinal, error: errorInfo) }
         }
-        logger.log(event: "speech:recognitionTaskCreated", data: [
-            "hasRecordingFile": recordingFile != nil
+        logger.log(event: "speech:recognitionTaskCreated", data: [:])
+
+        state = .recording
+        logger.log(event: "speech:startCompleted", data: [
+            "totalMs": Int(Date().timeIntervalSince(startTime) * 1000)
         ])
     }
 
-    func stop() async throws -> SpeechRecognitionResult {
+    func append(buffer: AVAudioPCMBuffer) {
+        recognitionRequest?.append(buffer)
+    }
+
+    func stop(audioURL: URL?, duration: TimeInterval, sampleRate: Double?) async throws -> SpeechRecognitionResult {
         let logger = AppLogger.speech()
         logger.log(event: "speech:stopRequested", data: [
             "state": String(describing: state)
@@ -225,7 +203,6 @@ public actor SpeechRecognitionService {
 
         // Stop audio input
         recognitionRequest?.endAudio()
-        audioEngine?.stop()
 
         // Wait for final result with timeout, fallback to latest partial result
         let result: String? = try await withThrowingTaskGroup(of: String?.self) { [weak self] group in
@@ -259,10 +236,7 @@ public actor SpeechRecognitionService {
             return result
         }
 
-        let duration = recordingStartDate.map { Date().timeIntervalSince($0) } ?? 0
         let sanitizedDuration = duration > 0 ? duration : 0
-        let audioURL = recordingURL
-        let sampleRate = recordingSampleRate
 
         await cleanup()
         logger.log(event: "speech:stopCompleted", data: [
@@ -291,7 +265,6 @@ public actor SpeechRecognitionService {
             continuation.resume(throwing: ServiceError.recognitionFailed("Cancelled"))
             finishContinuation = nil
         }
-        discardRecordedAudio()
         await cleanup()
         logger.log(event: "speech:cancelCompleted", data: [:])
     }
@@ -336,34 +309,62 @@ public actor SpeechRecognitionService {
     }
 
     private func cleanup() async {
-        let logger = AppLogger.speech()
-        logger.log(event: "speech:cleanup", data: [
-            "hadRecording": recordingURL != nil
-        ])
         recognitionTask?.cancel()
         recognitionTask = nil
         recognitionRequest?.endAudio()
         recognitionRequest = nil
-        audioEngine?.stop()
-        audioEngine?.inputNode.removeTap(onBus: 0)
-        audioEngine = nil
         latestTranscription = nil
-        recordingFile = nil
-        recordingURL = nil
-        recordingStartDate = nil
-        recordingSampleRate = nil
         state = .idle
-
-        #if os(iOS)
-        await MainActor.run {
-            try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
-        }
-        #endif
     }
 
-    private func discardRecordedAudio() {
-        if let url = recordingURL {
-            try? FileManager.default.removeItem(at: url)
+    func prewarmRecognizer() async {
+        if speechRecognizer != nil { return }
+        let locale = localeProvider()
+        guard let recognizer = SFSpeechRecognizer(locale: locale) else { return }
+        speechRecognizer = recognizer
+        _ = recognizer.isAvailable
+        if recognizer.supportsOnDeviceRecognition {
+            AppLogger.speech().log(event: "speech:recognizerPrewarmed", data: [
+                "locale": locale.identifier
+            ])
+        } else {
+            AppLogger.speech().log(event: "speech:recognizerPrewarmFallback", data: [
+                "locale": locale.identifier
+            ])
         }
+    }
+
+    func prepareSession() async {
+        #if os(iOS)
+        let needsCategory = !sessionConfigured
+        let needsActivation = !sessionActive
+        guard needsCategory || needsActivation else { return }
+        do {
+            try await MainActor.run {
+                let audioSession = AVAudioSession.sharedInstance()
+                if needsCategory {
+                    try audioSession.setCategory(
+                        .playAndRecord,
+                        mode: .default,
+                        options: [.duckOthers]
+                    )
+                }
+                if needsActivation {
+                    try audioSession.setActive(true, options: [.notifyOthersOnDeactivation])
+                }
+            }
+            if needsCategory { sessionConfigured = true }
+            if needsActivation { sessionActive = true }
+            AppLogger.speech().log(event: "speech:sessionPrepared", data: [
+                "configured": sessionConfigured,
+                "active": sessionActive
+            ])
+        } catch {
+            AppLogger.speech().logError(event: "speech:sessionPrepareFailed", error: error)
+        }
+        #else
+        sessionConfigured = true
+        sessionActive = true
+        #endif
     }
 }

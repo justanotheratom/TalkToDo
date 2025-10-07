@@ -201,6 +201,8 @@ public struct MainContentView: View {
         if onboardingStore?.hasCompletedOnboarding == true {
             await synchronizeOnDeviceModel(for: processingSettings.mode)
         }
+
+        await voiceInputStore.prepareForRecording()
     }
 
     private func loadDefaultModelIfNeeded() async {
@@ -300,6 +302,7 @@ public struct MainContentView: View {
     // MARK: - Voice Input
 
     private func handleMicrophonePress() {
+        logMicEvent("voice:micPressDown")
         Task {
             await voiceInputStore.startRecording { metadata in
                 Task {
@@ -317,6 +320,7 @@ public struct MainContentView: View {
     }
 
     private func handleMicrophoneRelease() {
+        logMicEvent("voice:micPressUp")
         Task {
             await voiceInputStore.finishRecording()
             selectedNodeContext = nil
@@ -353,6 +357,18 @@ public struct MainContentView: View {
             await synchronizeOnDeviceModel(for: mode)
         }
     }
+
+    private func logMicEvent(_ name: String, extra: [String: Any] = [:]) {
+        var payload = extra
+        payload["timestamp"] = MainContentView.isoFormatter.string(from: Date())
+        AppLogger.speech().log(event: name, data: payload)
+    }
+
+    private static let isoFormatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
 
     @MainActor
     private func synchronizeOnDeviceModel(for mode: ProcessingMode) async {

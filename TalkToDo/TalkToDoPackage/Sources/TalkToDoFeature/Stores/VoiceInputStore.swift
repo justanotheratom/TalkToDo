@@ -75,11 +75,14 @@ public final class VoiceInputStore {
     // MARK: - Dependencies
 
     @ObservationIgnored private let speechService: SpeechRecognitionService
+    @ObservationIgnored private let captureService = AudioCaptureService()
     @ObservationIgnored private var recordingStartTime: Date?
     @ObservationIgnored private var errorDismissTask: Task<Void, Never>?
     @ObservationIgnored private var completionHandler: ((RecordingMetadata) -> Void)?
     @ObservationIgnored private var transcriptPollingTask: Task<Void, Never>?
     @ObservationIgnored private var recordingLocaleIdentifier: String?
+    @ObservationIgnored private var activeCapture: AudioCaptureService.ActiveSession?
+    @ObservationIgnored private var bufferForwardTask: Task<Void, Never>?
 
     // MARK: - Initialization
 
@@ -104,6 +107,11 @@ public final class VoiceInputStore {
         #else
         microphonePermissionState = .granted
         #endif
+    }
+
+    public func prepareForRecording() async {
+        await speechService.prepareSession()
+        await speechService.prewarmRecognizer()
     }
 
     deinit {
@@ -253,9 +261,19 @@ public final class VoiceInputStore {
         #endif
 
         do {
-            logger.log(event: "voice:startRecordingStartingSpeech", data: [:])
             let locale = Locale.current
+            let capture = try await captureService.startRecording()
+            activeCapture = capture
+
+            logger.log(event: "voice:startRecordingStartingSpeech", data: [:])
             try await speechService.start(locale: locale)
+            bufferForwardTask?.cancel()
+            bufferForwardTask = Task { [speechService] in
+                for await packet in capture.buffers {
+                    await speechService.append(buffer: packet.buffer)
+                }
+            }
+
             let elapsedMs = Int(Date().timeIntervalSince(startTimestamp) * 1000)
             logger.log(event: "voice:startRecordingSpeechStarted", data: [
                 "elapsedMs": elapsedMs,
@@ -269,8 +287,14 @@ public final class VoiceInputStore {
             clearError()
             startTranscriptPolling()
 
-            AppLogger.speech().log(event: "voice:recordingStarted", data: [:])
+            AppLogger.speech().log(event: "voice:recordingStarted", data: [
+                "sampleRate": capture.sampleRate
+            ])
         } catch {
+            bufferForwardTask?.cancel()
+            bufferForwardTask = nil
+            activeCapture = nil
+            await captureService.cancelRecording()
             completionHandler = nil
             recordingLocaleIdentifier = nil
             logger.log(event: "voice:startRecordingFailed", data: [
@@ -298,9 +322,21 @@ public final class VoiceInputStore {
         do {
             AppLogger.speech().log(event: "voice:stoppingRecognition", data: [:])
 
-            // Add timeout to prevent infinite hang
+            let captureResult = try await withTimeout(seconds: 10) { [captureService] in
+                try await captureService.stopRecording()
+            }
+            activeCapture = nil
+            if let bufferTask = bufferForwardTask {
+                await bufferTask.value
+            }
+            bufferForwardTask = nil
+
             let recognitionResult = try await withTimeout(seconds: 10) { [speechService] in
-                try await speechService.stop()
+                try await speechService.stop(
+                    audioURL: captureResult.audioURL,
+                    duration: captureResult.duration,
+                    sampleRate: captureResult.sampleRate
+                )
             }
 
             AppLogger.speech().log(event: "voice:recognitionStopped", data: [
@@ -309,20 +345,17 @@ public final class VoiceInputStore {
             isTranscribing = false
 
             // Validate duration
-            if let start = recordingStartTime {
-                let duration = Date().timeIntervalSince(start)
-                AppLogger.speech().log(event: "voice:validateDuration", data: [
+            let duration = captureResult.duration
+            AppLogger.speech().log(event: "voice:validateDuration", data: [
+                "durationMs": Int(duration * 1000)
+            ])
+            if duration < 0.5 {
+                setError("Hold the microphone a bit longer.")
+                AppLogger.speech().log(event: "voice:recordingTooShort", data: [
                     "durationMs": Int(duration * 1000)
                 ])
-                if duration < 0.5 {
-                    recordingStartTime = nil
-                    setError("Hold the microphone a bit longer.")
-                    AppLogger.speech().log(event: "voice:recordingTooShort", data: [
-                        "durationMs": Int(duration * 1000)
-                    ])
-                    recordingLocaleIdentifier = nil
-                    return
-                }
+                recordingLocaleIdentifier = nil
+                return
             }
 
             recordingStartTime = nil
@@ -379,6 +412,10 @@ public final class VoiceInputStore {
         stopTranscriptPolling()
         completionHandler = nil
         liveTranscript = nil
+        bufferForwardTask?.cancel()
+        bufferForwardTask = nil
+        activeCapture = nil
+        await captureService.cancelRecording()
         await speechService.cancel()
         isRecording = false
         isTranscribing = false
@@ -442,6 +479,10 @@ public final class VoiceInputStore {
         completionHandler = nil
         liveTranscript = nil
         recordingLocaleIdentifier = nil
+        bufferForwardTask?.cancel()
+        bufferForwardTask = nil
+        activeCapture = nil
+        await captureService.cancelRecording()
 
         if let serviceError = error as? SpeechRecognitionService.ServiceError {
             switch serviceError {
