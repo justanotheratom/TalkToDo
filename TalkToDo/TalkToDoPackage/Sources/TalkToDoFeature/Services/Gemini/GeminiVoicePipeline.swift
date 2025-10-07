@@ -14,11 +14,9 @@ public struct GeminiVoicePipeline: VoiceProcessingPipeline {
     }
 
     private let client: any GeminiClientProtocol
-    private let fallback: AnyVoiceProcessingPipeline
 
-    public init(client: any GeminiClientProtocol, fallback: AnyVoiceProcessingPipeline) {
+    public init(client: any GeminiClientProtocol) {
         self.client = client
-        self.fallback = fallback
     }
 
     public func process(
@@ -41,7 +39,7 @@ public struct GeminiVoicePipeline: VoiceProcessingPipeline {
             return OperationGenerationResult(transcript: transcript, operations: response.operations)
         } catch {
             AppLogger.ui().logError(event: "pipeline:gemini:error", error: error)
-            return try await fallback.process(metadata: metadata, nodeContext: nodeContext)
+            throw error
         }
     }
 }

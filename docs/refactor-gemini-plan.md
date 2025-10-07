@@ -38,7 +38,7 @@
 ### Coordination Logic
 - [ ] Update or create `VoiceInputCoordinator` to gather `RecordingMetadata`, select pipeline via factory, and dispatch resulting operations to reducers.
 - [ ] Add telemetry/logging for mode selection, completion latency, and error diagnostics.
-- [ ] Implement fallback behaviour: if remote pipeline fails, fall back to on-device processing and surface UI error.
+- [ ] Surface remote pipeline errors to the UI without falling back to on-device processing when remote mode is selected.
 
 ### Testing & Validation
 - [ ] Add unit tests for settings store persistence, pipeline selection, and Gemini response parsing.

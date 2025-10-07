@@ -1,6 +1,42 @@
 import Foundation
 import TalkToDoShared
 
+private enum RemotePipelineError: Error, LocalizedError {
+    case missingGeminiAPIKey
+    case invalidConfiguration
+
+    var errorDescription: String? {
+        switch self {
+        case .missingGeminiAPIKey:
+            return "Add a Gemini API key in Settings to use remote processing."
+        case .invalidConfiguration:
+            return "Remote processing is misconfigured. Please contact support."
+        }
+    }
+}
+
+private struct MissingRemoteVoicePipeline: VoiceProcessingPipeline, Sendable {
+    let error: RemotePipelineError
+
+    func process(
+        metadata: RecordingMetadata,
+        nodeContext: NodeContext?
+    ) async throws -> OperationGenerationResult {
+        throw error
+    }
+}
+
+private struct MissingRemoteTextPipeline: TextProcessingPipeline, Sendable {
+    let error: RemotePipelineError
+
+    func process(
+        text: String,
+        nodeContext: NodeContext?
+    ) async throws -> OperationGenerationResult {
+        throw error
+    }
+}
+
 @MainActor
 public final class VoiceProcessingPipelineFactory {
     private let settingsStore: VoiceProcessingSettingsStore
@@ -10,6 +46,7 @@ public final class VoiceProcessingPipelineFactory {
     private lazy var onDeviceTextPipeline = OnDeviceTextPipeline(llmService: llmService)
     private var cachedGeminiVoicePipeline: GeminiVoicePipeline?
     private var cachedGeminiTextPipeline: GeminiTextPipeline?
+    private var cachedGeminiClient: GeminiAPIClient?
     private var cachedGeminiAPIKey: String?
 
     public init(
@@ -27,10 +64,12 @@ public final class VoiceProcessingPipelineFactory {
         case .onDevice:
             return AnyVoiceProcessingPipeline(onDeviceVoicePipeline)
         case .remoteGemini:
-            guard let pipeline = geminiPipeline() else {
-                return AnyVoiceProcessingPipeline(onDeviceVoicePipeline)
+            switch geminiPipeline() {
+            case .success(let pipeline):
+                return AnyVoiceProcessingPipeline(pipeline)
+            case .failure(let error):
+                return AnyVoiceProcessingPipeline(MissingRemoteVoicePipeline(error: error))
             }
-            return AnyVoiceProcessingPipeline(pipeline)
         }
     }
 
@@ -43,10 +82,12 @@ public final class VoiceProcessingPipelineFactory {
         case .onDevice:
             return AnyTextProcessingPipeline(onDeviceTextPipeline)
         case .remoteGemini:
-            guard let pipeline = geminiTextPipeline() else {
-                return AnyTextProcessingPipeline(onDeviceTextPipeline)
+            switch geminiTextPipeline() {
+            case .success(let pipeline):
+                return AnyTextProcessingPipeline(pipeline)
+            case .failure(let error):
+                return AnyTextProcessingPipeline(MissingRemoteTextPipeline(error: error))
             }
-            return AnyTextProcessingPipeline(pipeline)
         }
     }
 
@@ -54,62 +95,72 @@ public final class VoiceProcessingPipelineFactory {
         textPipeline(for: settingsStore.mode)
     }
 
-    private func geminiPipeline() -> GeminiVoicePipeline? {
-        let keyFromStore = settingsStore.remoteAPIKey
-        let resolvedKey = keyFromStore?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let apiKey = (resolvedKey?.isEmpty == false ? resolvedKey : apiKeyProvider()) ?? ""
+    private func geminiPipeline() -> Result<GeminiVoicePipeline, RemotePipelineError> {
+        switch geminiClient() {
+        case .failure(let error):
+            return .failure(error)
+        case .success(let client):
+            if let cached = cachedGeminiVoicePipeline {
+                return .success(cached)
+            }
 
-        guard !apiKey.isEmpty else {
+            let pipeline = GeminiVoicePipeline(client: client)
+            cachedGeminiVoicePipeline = pipeline
+            return .success(pipeline)
+        }
+    }
+
+    private func geminiTextPipeline() -> Result<GeminiTextPipeline, RemotePipelineError> {
+        switch geminiClient() {
+        case .failure(let error):
+            return .failure(error)
+        case .success(let client):
+            if let cached = cachedGeminiTextPipeline {
+                return .success(cached)
+            }
+
+            let pipeline = GeminiTextPipeline(client: client)
+            cachedGeminiTextPipeline = pipeline
+            return .success(pipeline)
+        }
+    }
+
+    private func geminiClient() -> Result<GeminiAPIClient, RemotePipelineError> {
+        let keyFromStore = settingsStore.remoteAPIKey?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let environmentKey = apiKeyProvider()?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let resolvedKey = keyFromStore?.isEmpty == false ? keyFromStore : environmentKey
+
+        guard let apiKey = resolvedKey, !apiKey.isEmpty else {
             AppLogger.ui().log(event: "pipeline:factory:missingGeminiKey", data: [:])
-            cachedGeminiVoicePipeline = nil
-            cachedGeminiTextPipeline = nil
-            cachedGeminiAPIKey = nil
-            return nil
+            invalidateGeminiCaches()
+            return .failure(.missingGeminiAPIKey)
         }
 
-        if let cached = cachedGeminiVoicePipeline, cachedGeminiAPIKey == apiKey {
-            return cached
+        if let cachedKey = cachedGeminiAPIKey,
+           let cachedClient = cachedGeminiClient,
+           cachedKey == apiKey {
+            return .success(cachedClient)
         }
 
         guard let baseURL = URL(string: "https://generativelanguage.googleapis.com/v1beta/openai/") else {
             AppLogger.ui().log(event: "pipeline:factory:invalidGeminiURL", data: [:])
-            return nil
+            invalidateGeminiCaches()
+            return .failure(.invalidConfiguration)
         }
 
         let configuration = GeminiAPIClient.Configuration(baseURL: baseURL, apiKey: apiKey)
         let client = GeminiAPIClient(configuration: configuration)
-        let pipeline = GeminiVoicePipeline(
-            client: client,
-            fallback: AnyVoiceProcessingPipeline(onDeviceVoicePipeline)
-        )
-        cachedGeminiVoicePipeline = pipeline
         cachedGeminiAPIKey = apiKey
-        return pipeline
+        cachedGeminiClient = client
+        cachedGeminiVoicePipeline = nil
+        cachedGeminiTextPipeline = nil
+        return .success(client)
     }
 
-    private func geminiTextPipeline() -> GeminiTextPipeline? {
-        guard let apiKey = cachedGeminiAPIKey,
-              cachedGeminiVoicePipeline != nil else {
-            // Ensure voice pipeline is initialized so key is cached
-            guard let _ = geminiPipeline() else { return nil }
-            return cachedGeminiTextPipeline
-        }
-
-        if let cached = cachedGeminiTextPipeline {
-            return cached
-        }
-
-        guard let baseURL = URL(string: "https://generativelanguage.googleapis.com/v1beta/openai/") else {
-            return nil
-        }
-
-        let configuration = GeminiAPIClient.Configuration(baseURL: baseURL, apiKey: apiKey)
-        let client = GeminiAPIClient(configuration: configuration)
-        let pipeline = GeminiTextPipeline(
-            client: client,
-            fallback: AnyTextProcessingPipeline(onDeviceTextPipeline)
-        )
-        cachedGeminiTextPipeline = pipeline
-        return pipeline
+    private func invalidateGeminiCaches() {
+        cachedGeminiVoicePipeline = nil
+        cachedGeminiTextPipeline = nil
+        cachedGeminiClient = nil
+        cachedGeminiAPIKey = nil
     }
 }

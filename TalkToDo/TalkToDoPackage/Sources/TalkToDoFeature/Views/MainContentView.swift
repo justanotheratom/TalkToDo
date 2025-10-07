@@ -29,7 +29,7 @@ public struct MainContentView: View {
             if let onboarding = onboardingStore, onboarding.state != .completed && !onboarding.hasCompletedOnboarding {
                 OnboardingView(store: onboarding, onComplete: {
                     Task {
-                        await loadDefaultModelIfNeeded()
+                        await synchronizeOnDeviceModel(for: processingSettings.mode)
                     }
                 })
             } else {
@@ -197,9 +197,9 @@ public struct MainContentView: View {
             "mode": processingSettings.mode.rawValue
         ])
 
-        // Load default model if onboarding is complete
+        // Align on-device model state with the selected processing mode
         if onboardingStore?.hasCompletedOnboarding == true {
-            await loadDefaultModelIfNeeded()
+            await synchronizeOnDeviceModel(for: processingSettings.mode)
         }
     }
 
@@ -336,7 +336,7 @@ public struct MainContentView: View {
         }
     }
 
-    private func updateProcessingPipeline(for mode: ProcessingMode, previousMode: ProcessingMode) {
+    private func updateProcessingPipeline(for mode: ProcessingMode, previousMode _: ProcessingMode) {
         guard let factory = pipelineFactory else { return }
 
         if let voice = voiceCoordinator {
@@ -349,10 +349,21 @@ public struct MainContentView: View {
             text.updatePipeline(textPipeline, mode: mode)
         }
 
-        if mode == .remoteGemini {
-            Task { await llmService.unloadModel() }
-        } else if previousMode == .remoteGemini {
-            Task { await loadDefaultModelIfNeeded() }
+        Task {
+            await synchronizeOnDeviceModel(for: mode)
+        }
+    }
+
+    @MainActor
+    private func synchronizeOnDeviceModel(for mode: ProcessingMode) async {
+        switch mode {
+        case .onDevice:
+            await loadDefaultModelIfNeeded()
+        case .remoteGemini:
+            AppLogger.ui().log(event: "app:modelSync:unloadForRemote", data: [
+                "mode": mode.rawValue
+            ])
+            await llmService.unloadModel()
         }
     }
 

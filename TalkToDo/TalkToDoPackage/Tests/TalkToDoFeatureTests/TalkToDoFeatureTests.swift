@@ -55,32 +55,26 @@ final class TalkToDoFeatureTests: XCTestCase {
     func testGeminiPipelineUsesRemoteForTextOnly() async throws {
         let response = GeminiStructuredResponse(transcript: "remote", operations: [])
         let client = StubGeminiClient(result: .success(response))
-        let fallbackResult = OperationGenerationResult(transcript: "fallback", operations: [])
-        let fallbackPipeline = StubTextPipeline(result: fallbackResult)
-        let pipeline = GeminiTextPipeline(
-            client: client,
-            fallback: AnyTextProcessingPipeline(fallbackPipeline)
-        )
+        let pipeline = GeminiTextPipeline(client: client)
 
         let result = try await pipeline.process(text: "type text", nodeContext: nil)
         XCTAssertEqual(result.transcript, "remote")
-        XCTAssertFalse(fallbackPipeline.didProcess)
         XCTAssertNil(client.capturedAudioURL)
         XCTAssertEqual(client.capturedTranscript, "type text")
     }
 
-    func testGeminiPipelineFallsBackOnClientError() async throws {
+    func testGeminiPipelinePropagatesClientError() async {
         let client = StubGeminiClient(result: .failure(GeminiAPIClient.ClientError.invalidResponse))
-        let fallbackResult = OperationGenerationResult(transcript: "fallback", operations: [])
-        let fallbackPipeline = StubTextPipeline(result: fallbackResult)
-        let pipeline = GeminiTextPipeline(
-            client: client,
-            fallback: AnyTextProcessingPipeline(fallbackPipeline)
-        )
+        let pipeline = GeminiTextPipeline(client: client)
 
-        let result = try await pipeline.process(text: "hi", nodeContext: nil)
-        XCTAssertEqual(result.transcript, fallbackResult.transcript)
-        XCTAssertTrue(fallbackPipeline.didProcess)
+        do {
+            _ = try await pipeline.process(text: "hi", nodeContext: nil)
+            XCTFail("Expected invalid response error")
+        } catch let error as GeminiAPIClient.ClientError {
+            XCTAssertEqual(error, .invalidResponse)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
     }
 }
 
@@ -123,22 +117,6 @@ private final class StubVoicePipeline: @unchecked Sendable, VoiceProcessingPipel
         metadata: RecordingMetadata,
         nodeContext: NodeContext?
     ) async throws -> OperationGenerationResult {
-        invocationCount += 1
-        return result
-    }
-}
-
-private final class StubTextPipeline: @unchecked Sendable, TextProcessingPipeline {
-    let result: OperationGenerationResult
-    private(set) var invocationCount = 0
-
-    init(result: OperationGenerationResult) {
-        self.result = result
-    }
-
-    var didProcess: Bool { invocationCount > 0 }
-
-    func process(text: String, nodeContext: NodeContext?) async throws -> OperationGenerationResult {
         invocationCount += 1
         return result
     }

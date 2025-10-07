@@ -2,12 +2,21 @@ import Foundation
 import TalkToDoShared
 
 public struct GeminiTextPipeline: TextProcessingPipeline {
-    private let client: any GeminiClientProtocol
-    private let fallback: AnyTextProcessingPipeline
+    public enum PipelineError: Error, LocalizedError {
+        case emptyText
 
-    public init(client: any GeminiClientProtocol, fallback: AnyTextProcessingPipeline) {
+        public var errorDescription: String? {
+            switch self {
+            case .emptyText:
+                return "Please enter some text to convert into tasks."
+            }
+        }
+    }
+
+    private let client: any GeminiClientProtocol
+
+    public init(client: any GeminiClientProtocol) {
         self.client = client
-        self.fallback = fallback
     }
 
     public func process(
@@ -17,7 +26,7 @@ public struct GeminiTextPipeline: TextProcessingPipeline {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             AppLogger.ui().log(event: "textPipeline:gemini:empty", data: [:])
-            return try await fallback.process(text: text, nodeContext: nodeContext)
+            throw PipelineError.emptyText
         }
 
         do {
@@ -38,7 +47,7 @@ public struct GeminiTextPipeline: TextProcessingPipeline {
             )
         } catch {
             AppLogger.ui().logError(event: "textPipeline:gemini:error", error: error)
-            return try await fallback.process(text: text, nodeContext: nodeContext)
+            throw error
         }
     }
 }
