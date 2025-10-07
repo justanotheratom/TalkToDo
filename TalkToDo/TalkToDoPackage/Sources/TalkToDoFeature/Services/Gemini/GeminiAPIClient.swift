@@ -95,6 +95,8 @@ public struct GeminiAPIClient: Sendable {
         let body: [String: Any] = [
             "model": "gemini-2.5-flash-lite",
             "temperature": 0.2,
+            "response_format": ["type": "json_object"],
+            "max_output_tokens": 2048,
             "messages": [
                 [
                     "role": "system",
@@ -117,7 +119,7 @@ public struct GeminiAPIClient: Sendable {
             throw ClientError.serializationFailed
         }
 
-        var request = URLRequest(url: configuration.baseURL.appendingPathComponent("v1/chat/completions"))
+        var request = URLRequest(url: configuration.baseURL.appendingPathComponent("chat/completions"))
         request.httpMethod = "POST"
         request.httpBody = httpBody
         request.setValue("Bearer \(configuration.apiKey)", forHTTPHeaderField: "Authorization")
