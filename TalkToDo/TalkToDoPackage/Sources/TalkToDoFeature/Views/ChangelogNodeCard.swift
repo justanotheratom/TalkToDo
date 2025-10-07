@@ -9,14 +9,35 @@ public struct ChangelogNodeCard: View {
     let title: String
     let isDeleted: Bool
     let isCompleted: Bool
+    let parentTitle: String?
 
-    public init(title: String, isDeleted: Bool = false, isCompleted: Bool = false) {
+    public init(title: String, isDeleted: Bool = false, isCompleted: Bool = false, parentTitle: String? = nil) {
         self.title = title
         self.isDeleted = isDeleted
         self.isCompleted = isCompleted
+        self.parentTitle = parentTitle
     }
 
     public var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            // Parent context
+            if let parent = parentTitle {
+                HStack(spacing: 4) {
+                    Image(systemName: "folder")
+                        .font(.system(size: 10))
+                    Text(parent)
+                        .font(fontPreference.selectedFont.caption)
+                        .lineLimit(1)
+                }
+                .foregroundStyle(.tertiary)
+            }
+
+            // Card
+            cardContent
+        }
+    }
+
+    private var cardContent: some View {
         HStack(spacing: 8) {
             // Checkbox indicator
             if isCompleted {
@@ -73,9 +94,11 @@ public struct ChangelogNodeCard: View {
     VStack(spacing: 12) {
         ChangelogNodeCard(title: "Buy groceries")
 
+        ChangelogNodeCard(title: "Call accountant", parentTitle: "File my tax returns")
+
         ChangelogNodeCard(title: "Buy groceries", isCompleted: true)
 
-        ChangelogNodeCard(title: "Old task that was deleted", isDeleted: true)
+        ChangelogNodeCard(title: "Old task that was deleted", isDeleted: true, parentTitle: "Old Project")
     }
     .padding()
     .background(Color(white: 0.95))

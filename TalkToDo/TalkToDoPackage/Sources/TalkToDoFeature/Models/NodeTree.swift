@@ -153,7 +153,7 @@ public final class NodeTree {
         nodeMap[id]
     }
 
-    private func findParent(of nodeId: String) -> String? {
+    public func findParent(of nodeId: String) -> String? {
         for (parentId, parent) in nodeMap {
             if parent.children.contains(where: { $0.id == nodeId }) {
                 return parentId

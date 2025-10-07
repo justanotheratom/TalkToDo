@@ -29,13 +29,6 @@ public struct ChangelogEntryRow: View {
                     // Visual card(s)
                     cardContent
 
-                    // Parent context (if any)
-                    if let parentTitle = entry.parentTitle {
-                        Text("under '\(parentTitle)'")
-                            .font(fontPreference.selectedFont.caption)
-                            .foregroundStyle(.tertiary)
-                    }
-
                     // Timestamp
                     HStack(spacing: 4) {
                         Image(systemName: "clock")
@@ -57,15 +50,21 @@ public struct ChangelogEntryRow: View {
             // Show before → after
             if let oldTitle = entry.oldCardTitle, let newTitle = entry.newCardTitle {
                 HStack(spacing: 8) {
-                    ChangelogNodeCard(title: oldTitle)
-                        .frame(maxWidth: .infinity)
+                    ChangelogNodeCard(
+                        title: oldTitle,
+                        parentTitle: entry.parentTitle
+                    )
+                    .frame(maxWidth: .infinity)
 
                     Image(systemName: "arrow.right")
                         .font(.system(size: 14))
                         .foregroundStyle(.secondary)
 
-                    ChangelogNodeCard(title: newTitle)
-                        .frame(maxWidth: .infinity)
+                    ChangelogNodeCard(
+                        title: newTitle,
+                        parentTitle: entry.parentTitle
+                    )
+                    .frame(maxWidth: .infinity)
                 }
             }
 
@@ -75,7 +74,8 @@ public struct ChangelogEntryRow: View {
                 ChangelogNodeCard(
                     title: title,
                     isDeleted: entry.isCardDeleted,
-                    isCompleted: entry.isCardCompleted
+                    isCompleted: entry.isCardCompleted,
+                    parentTitle: entry.parentTitle
                 )
             }
         }

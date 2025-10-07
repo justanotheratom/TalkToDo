@@ -55,7 +55,12 @@ public struct ChangelogEntry: Identifiable, Sendable {
                 self.newCardTitle = payload.newTitle
                 self.isCardDeleted = false
                 self.isCardCompleted = false
-                self.parentTitle = nil
+                // Get parent for renamed node
+                if let parentId = nodeTree.findParent(of: payload.nodeId) {
+                    self.parentTitle = nodeTree.findNode(id: parentId)?.title
+                } else {
+                    self.parentTitle = nil
+                }
 
             case .deleteNode:
                 let payload = try JSONDecoder().decode(DeleteNodePayload.self, from: event.payload)
@@ -71,7 +76,12 @@ public struct ChangelogEntry: Identifiable, Sendable {
                 self.newCardTitle = nil
                 self.isCardDeleted = true
                 self.isCardCompleted = false
-                self.parentTitle = nil
+                // Get parent for deleted node
+                if let parentId = nodeTree.findParent(of: payload.nodeId) {
+                    self.parentTitle = nodeTree.findNode(id: parentId)?.title
+                } else {
+                    self.parentTitle = nil
+                }
 
             case .reparentNode:
                 let payload = try JSONDecoder().decode(ReparentNodePayload.self, from: event.payload)
@@ -104,7 +114,12 @@ public struct ChangelogEntry: Identifiable, Sendable {
                 self.newCardTitle = nil
                 self.isCardDeleted = false
                 self.isCardCompleted = payload.isCompleted
-                self.parentTitle = nil
+                // Get parent for completed node
+                if let parentId = nodeTree.findParent(of: payload.nodeId) {
+                    self.parentTitle = nodeTree.findNode(id: parentId)?.title
+                } else {
+                    self.parentTitle = nil
+                }
 
             case .toggleCollapse:
                 // Skip collapse events in changelog as they're UI-only
