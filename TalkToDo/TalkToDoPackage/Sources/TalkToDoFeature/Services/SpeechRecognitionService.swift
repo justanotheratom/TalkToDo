@@ -1,6 +1,7 @@
 import Foundation
 import AVFoundation
 @preconcurrency import Speech
+import TalkToDoShared
 
 @available(iOS 18.0, macOS 15.0, *)
 public struct SpeechRecognitionResult: Sendable {
@@ -102,12 +103,22 @@ public actor SpeechRecognitionService {
     }
 
     func start(locale overrideLocale: Locale? = nil) async throws {
+        let logger = AppLogger.speech()
+        logger.log(event: "speech:startRequested", data: [
+            "state": String(describing: state),
+            "overrideLocale": overrideLocale?.identifier ?? "nil"
+        ])
         guard state == .idle else { throw ServiceError.recognitionAlreadyRunning }
 
         let locale = overrideLocale ?? localeProvider()
         guard let recognizer = SFSpeechRecognizer(locale: locale) else {
             throw ServiceError.recognizerUnavailable
         }
+        logger.log(event: "speech:recognizerInitialized", data: [
+            "locale": locale.identifier,
+            "onDevice": recognizer.supportsOnDeviceRecognition,
+            "available": recognizer.isAvailable
+        ])
 
         guard recognizer.supportsOnDeviceRecognition else {
             throw ServiceError.onDeviceRecognitionUnsupported
@@ -153,9 +164,10 @@ public actor SpeechRecognitionService {
             recordingURL = nil
         }
         inputNode.removeTap(onBus: 0)
+        let recordingFileReference = recordingFile
         inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { buffer, _ in
             request.append(buffer)
-            if let file = self.recordingFile {
+            if let file = recordingFileReference {
                 try? file.write(from: buffer)
             }
         }
@@ -163,6 +175,9 @@ public actor SpeechRecognitionService {
         audioEngine.prepare()
         do {
             try audioEngine.start()
+            logger.log(event: "speech:audioEngineStarted", data: [
+                "sampleRate": recordingFormat.sampleRate
+            ])
         } catch {
             inputNode.removeTap(onBus: 0)
             throw ServiceError.audioEngineUnavailable
@@ -178,9 +193,16 @@ public actor SpeechRecognitionService {
             let errorInfo = (error as NSError?)
             Task { await self.processRecognitionUpdate(transcript: transcript, isFinal: isFinal, error: errorInfo) }
         }
+        logger.log(event: "speech:recognitionTaskCreated", data: [
+            "hasRecordingFile": recordingFile != nil
+        ])
     }
 
     func stop() async throws -> SpeechRecognitionResult {
+        let logger = AppLogger.speech()
+        logger.log(event: "speech:stopRequested", data: [
+            "state": String(describing: state)
+        ])
         guard state == .recording else { throw ServiceError.noActiveRecognition }
 
         // Stop audio input
@@ -225,6 +247,11 @@ public actor SpeechRecognitionService {
         let sampleRate = recordingSampleRate
 
         await cleanup()
+        logger.log(event: "speech:stopCompleted", data: [
+            "durationMs": Int(sanitizedDuration * 1000),
+            "hasTranscript": result != nil,
+            "hasAudio": audioURL != nil
+        ])
         return SpeechRecognitionResult(
             transcript: result,
             audioURL: audioURL,
@@ -238,12 +265,17 @@ public actor SpeechRecognitionService {
     }
 
     func cancel() async {
+        let logger = AppLogger.speech()
+        logger.log(event: "speech:cancelRequested", data: [
+            "state": String(describing: state)
+        ])
         if let continuation = finishContinuation {
             continuation.resume(throwing: ServiceError.recognitionFailed("Cancelled"))
             finishContinuation = nil
         }
         discardRecordedAudio()
         await cleanup()
+        logger.log(event: "speech:cancelCompleted", data: [:])
     }
 
     func getCurrentTranscript() -> String? {
@@ -251,6 +283,12 @@ public actor SpeechRecognitionService {
     }
 
     private func processRecognitionUpdate(transcript: String?, isFinal: Bool, error: NSError?) async {
+        let logger = AppLogger.speech()
+        logger.log(event: "speech:recognitionUpdate", data: [
+            "isFinal": isFinal,
+            "hasTranscript": transcript != nil,
+            "transcriptLength": transcript?.count ?? 0
+        ])
         if let error {
             if let continuation = finishContinuation {
                 continuation.resume(throwing: ServiceError.recognitionFailed(error.localizedDescription))
@@ -272,6 +310,10 @@ public actor SpeechRecognitionService {
     }
 
     private func cleanup() async {
+        let logger = AppLogger.speech()
+        logger.log(event: "speech:cleanup", data: [
+            "hadRecording": recordingURL != nil
+        ])
         recognitionTask?.cancel()
         recognitionTask = nil
         recognitionRequest?.endAudio()
