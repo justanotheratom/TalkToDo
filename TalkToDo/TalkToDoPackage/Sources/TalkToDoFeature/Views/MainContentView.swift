@@ -40,8 +40,8 @@ public struct MainContentView: View {
         .task {
             await initializeApp()
         }
-        .onChange(of: processingSettings.mode) { _, newMode in
-            updateProcessingPipeline(for: newMode)
+        .onChange(of: processingSettings.mode) { oldMode, newMode in
+            updateProcessingPipeline(for: newMode, previousMode: oldMode)
         }
     }
 
@@ -329,12 +329,18 @@ public struct MainContentView: View {
         }
     }
 
-    private func updateProcessingPipeline(for mode: ProcessingMode) {
+    private func updateProcessingPipeline(for mode: ProcessingMode, previousMode: ProcessingMode) {
         guard let factory = pipelineFactory,
               let coordinator = voiceCoordinator else { return }
 
         let pipeline = factory.pipeline(for: mode)
         coordinator.updatePipeline(pipeline, mode: mode)
+
+        if mode == .remoteGemini {
+            Task { await llmService.unloadModel() }
+        } else if previousMode == .remoteGemini {
+            Task { await loadDefaultModelIfNeeded() }
+        }
     }
 
     // MARK: - Undo
