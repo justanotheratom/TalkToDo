@@ -41,7 +41,7 @@ public struct NodeListView: View {
         nodeList
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
-            .background(Color(.systemGroupedBackground))
+            .background(backgroundGradient)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     visibilityToggleButton
@@ -53,6 +53,19 @@ public struct NodeListView: View {
             .onChange(of: nodeTree.rootNodes.map { $0.isCompleted }) { _, _ in
                 checkForRestoredNodes()
             }
+    }
+
+    private var backgroundGradient: some View {
+        LinearGradient(
+            colors: [
+                Color(red: 0.95, green: 0.96, blue: 0.98),  // Light blue-gray
+                Color(red: 0.98, green: 0.95, blue: 0.96),  // Light pink-gray
+                Color(red: 0.96, green: 0.97, blue: 0.99)   // Light blue-white
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        .ignoresSafeArea()
     }
 
     private var nodeList: some View {

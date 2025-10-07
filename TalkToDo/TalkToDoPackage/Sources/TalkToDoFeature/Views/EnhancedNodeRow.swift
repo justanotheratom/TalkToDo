@@ -72,13 +72,21 @@ public struct EnhancedNodeRow: View {
                 .buttonStyle(.plain)
             }
         }
-        .padding(.vertical, 10)
-        .padding(.horizontal, 12)
+        .padding(.vertical, 12)
+        .padding(.horizontal, 16)
         .background(rowBackground)
         .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(Color.accentColor.opacity(isRecording ? 0.8 : 0), lineWidth: 2)
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(
+                    LinearGradient(
+                        colors: [Color.accentColor, Color.accentColor.opacity(0.6)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: isRecording ? 2 : 0
+                )
                 .scaleEffect(isRecording ? 1.02 : 1.0)
+                .shadow(color: Color.accentColor.opacity(isRecording ? 0.4 : 0), radius: 12, x: 0, y: 4)
                 .animation(
                     isRecording
                         ? .easeInOut(duration: 0.8).repeatForever(autoreverses: true)
@@ -106,13 +114,24 @@ public struct EnhancedNodeRow: View {
     @ViewBuilder
     private var rowBackground: some View {
         if let highlight = highlightType {
-            RoundedRectangle(cornerRadius: 10)
-                .fill(highlightColor(for: highlight))
-                .shadow(color: .black.opacity(0.04), radius: 2, x: 0, y: 1)
+            RoundedRectangle(cornerRadius: 12)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            highlightColor(for: highlight),
+                            highlightColor(for: highlight).opacity(0.8)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .shadow(color: highlightColor(for: highlight).opacity(0.3), radius: 8, x: 0, y: 4)
+                .shadow(color: .black.opacity(0.08), radius: 2, x: 0, y: 1)
         } else {
-            RoundedRectangle(cornerRadius: 10)
-                .fill(Color(.secondarySystemGroupedBackground))
-                .shadow(color: .black.opacity(0.04), radius: 2, x: 0, y: 1)
+            RoundedRectangle(cornerRadius: 12)
+                .fill(.white)
+                .shadow(color: Color.accentColor.opacity(0.08), radius: 8, x: 0, y: 4)
+                .shadow(color: .black.opacity(0.06), radius: 2, x: 0, y: 1)
         }
     }
 

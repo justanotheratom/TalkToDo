@@ -133,16 +133,27 @@ public struct MicrophoneInputBar: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
         .background {
-            RoundedRectangle(cornerRadius: 22)
-                .fill(.ultraThinMaterial)
-                .shadow(color: .black.opacity(0.06), radius: 8, y: 3)
+            RoundedRectangle(cornerRadius: 24)
+                .fill(.white)
+                .shadow(color: Color.accentColor.opacity(0.15), radius: 12, y: 4)
+                .shadow(color: .black.opacity(0.08), radius: 2, y: 1)
         }
         .overlay {
-            RoundedRectangle(cornerRadius: 22)
-                .strokeBorder(Color(red: 1.0, green: 0.478, blue: 0.361), lineWidth: 0.5)
+            RoundedRectangle(cornerRadius: 24)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [
+                            Color.accentColor.opacity(0.3),
+                            Color.accentColor.opacity(0.1)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
         }
         .contentShape(RoundedRectangle(cornerRadius: 22))
         .scaleEffect(status == .recording ? 1.02 : 1.0)
@@ -227,16 +238,21 @@ public struct MicrophoneInputBar: View {
 
     @ViewBuilder
     private var inputBarBackground: some View {
-        Rectangle()
-            .fill(.regularMaterial)
-            .background {
-                LinearGradient(
-                    colors: [Color.black.opacity(0.01), Color.black.opacity(0.04)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            }
-            .shadow(color: .black.opacity(0.06), radius: 1, y: -1)
+        ZStack {
+            LinearGradient(
+                colors: [
+                    Color(red: 0.98, green: 0.98, blue: 0.99),
+                    Color(red: 0.96, green: 0.97, blue: 0.98)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .opacity(0.6)
+        }
+        .shadow(color: .black.opacity(0.08), radius: 4, y: -2)
     }
 
     // MARK: - Microphone Styling
