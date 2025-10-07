@@ -24,7 +24,7 @@ public struct GeminiVoicePipeline: VoiceProcessingPipeline {
     public func process(
         metadata: RecordingMetadata,
         nodeContext: NodeContext?
-    ) async throws -> VoiceProcessingResult {
+    ) async throws -> OperationGenerationResult {
         do {
             let response = try await client.submitTask(
                 audioURL: metadata.audioURL,
@@ -38,7 +38,7 @@ public struct GeminiVoicePipeline: VoiceProcessingPipeline {
                 throw PipelineError.emptyTranscript
             }
 
-            return VoiceProcessingResult(transcript: transcript, operations: response.operations)
+            return OperationGenerationResult(transcript: transcript, operations: response.operations)
         } catch {
             AppLogger.ui().logError(event: "pipeline:gemini:error", error: error)
             return try await fallback.process(metadata: metadata, nodeContext: nodeContext)

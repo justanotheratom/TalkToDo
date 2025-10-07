@@ -22,7 +22,7 @@ public struct OnDeviceVoicePipeline: VoiceProcessingPipeline {
     public func process(
         metadata: RecordingMetadata,
         nodeContext: NodeContext?
-    ) async throws -> VoiceProcessingResult {
+    ) async throws -> OperationGenerationResult {
         guard let transcript = metadata.transcript?.trimmingCharacters(in: .whitespacesAndNewlines),
               !transcript.isEmpty else {
             AppLogger.ui().log(event: "pipeline:onDevice:missingTranscript", data: [:])
@@ -43,7 +43,7 @@ public struct OnDeviceVoicePipeline: VoiceProcessingPipeline {
             "operationCount": plan.operations.count
         ])
 
-        return VoiceProcessingResult(
+        return OperationGenerationResult(
             transcript: transcript,
             operations: plan.operations
         )

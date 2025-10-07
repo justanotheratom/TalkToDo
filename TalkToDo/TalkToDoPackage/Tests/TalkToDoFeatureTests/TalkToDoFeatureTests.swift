@@ -55,22 +55,14 @@ final class TalkToDoFeatureTests: XCTestCase {
     func testGeminiPipelineUsesRemoteForTextOnly() async throws {
         let response = GeminiStructuredResponse(transcript: "remote", operations: [])
         let client = StubGeminiClient(result: .success(response))
-        let fallbackResult = VoiceProcessingResult(transcript: "fallback", operations: [])
-        let fallbackPipeline = StubPipeline(result: fallbackResult)
-        let pipeline = GeminiVoicePipeline(
+        let fallbackResult = OperationGenerationResult(transcript: "fallback", operations: [])
+        let fallbackPipeline = StubTextPipeline(result: fallbackResult)
+        let pipeline = GeminiTextPipeline(
             client: client,
-            fallback: AnyVoiceProcessingPipeline(fallbackPipeline)
+            fallback: AnyTextProcessingPipeline(fallbackPipeline)
         )
 
-        let metadata = RecordingMetadata(
-            transcript: "type text",
-            audioURL: nil,
-            duration: 0,
-            sampleRate: nil,
-            localeIdentifier: "en-US"
-        )
-
-        let result = try await pipeline.process(metadata: metadata, nodeContext: nil)
+        let result = try await pipeline.process(text: "type text", nodeContext: nil)
         XCTAssertEqual(result.transcript, "remote")
         XCTAssertFalse(fallbackPipeline.didProcess)
         XCTAssertNil(client.capturedAudioURL)
@@ -79,22 +71,14 @@ final class TalkToDoFeatureTests: XCTestCase {
 
     func testGeminiPipelineFallsBackOnClientError() async throws {
         let client = StubGeminiClient(result: .failure(GeminiAPIClient.ClientError.invalidResponse))
-        let fallbackResult = VoiceProcessingResult(transcript: "fallback", operations: [])
-        let fallbackPipeline = StubPipeline(result: fallbackResult)
-        let pipeline = GeminiVoicePipeline(
+        let fallbackResult = OperationGenerationResult(transcript: "fallback", operations: [])
+        let fallbackPipeline = StubTextPipeline(result: fallbackResult)
+        let pipeline = GeminiTextPipeline(
             client: client,
-            fallback: AnyVoiceProcessingPipeline(fallbackPipeline)
+            fallback: AnyTextProcessingPipeline(fallbackPipeline)
         )
 
-        let metadata = RecordingMetadata(
-            transcript: "hi",
-            audioURL: nil,
-            duration: 0,
-            sampleRate: nil,
-            localeIdentifier: nil
-        )
-
-        let result = try await pipeline.process(metadata: metadata, nodeContext: nil)
+        let result = try await pipeline.process(text: "hi", nodeContext: nil)
         XCTAssertEqual(result.transcript, fallbackResult.transcript)
         XCTAssertTrue(fallbackPipeline.didProcess)
     }
@@ -125,11 +109,11 @@ private final class StubGeminiClient: @unchecked Sendable, GeminiClientProtocol 
     }
 }
 
-private final class StubPipeline: @unchecked Sendable, VoiceProcessingPipeline {
-    let result: VoiceProcessingResult
+private final class StubVoicePipeline: @unchecked Sendable, VoiceProcessingPipeline {
+    let result: OperationGenerationResult
     private(set) var invocationCount = 0
 
-    init(result: VoiceProcessingResult) {
+    init(result: OperationGenerationResult) {
         self.result = result
     }
 
@@ -138,7 +122,23 @@ private final class StubPipeline: @unchecked Sendable, VoiceProcessingPipeline {
     func process(
         metadata: RecordingMetadata,
         nodeContext: NodeContext?
-    ) async throws -> VoiceProcessingResult {
+    ) async throws -> OperationGenerationResult {
+        invocationCount += 1
+        return result
+    }
+}
+
+private final class StubTextPipeline: @unchecked Sendable, TextProcessingPipeline {
+    let result: OperationGenerationResult
+    private(set) var invocationCount = 0
+
+    init(result: OperationGenerationResult) {
+        self.result = result
+    }
+
+    var didProcess: Bool { invocationCount > 0 }
+
+    func process(text: String, nodeContext: NodeContext?) async throws -> OperationGenerationResult {
         invocationCount += 1
         return result
     }

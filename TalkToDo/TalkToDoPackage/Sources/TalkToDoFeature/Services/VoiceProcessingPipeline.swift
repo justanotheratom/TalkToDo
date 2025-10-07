@@ -32,7 +32,7 @@ public struct RecordingMetadata: Sendable {
     }
 }
 
-public struct VoiceProcessingResult: Sendable {
+public struct OperationGenerationResult: Sendable {
     public let transcript: String
     public let operations: [Operation]
 
@@ -46,5 +46,12 @@ public protocol VoiceProcessingPipeline: Sendable {
     func process(
         metadata: RecordingMetadata,
         nodeContext: NodeContext?
-    ) async throws -> VoiceProcessingResult
+    ) async throws -> OperationGenerationResult
+}
+
+public protocol TextProcessingPipeline: Sendable {
+    func process(
+        text: String,
+        nodeContext: NodeContext?
+    ) async throws -> OperationGenerationResult
 }

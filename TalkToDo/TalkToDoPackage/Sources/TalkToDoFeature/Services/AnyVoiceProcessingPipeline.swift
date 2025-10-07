@@ -1,5 +1,5 @@
 public struct AnyVoiceProcessingPipeline: VoiceProcessingPipeline {
-    private let processHandler: @Sendable (RecordingMetadata, NodeContext?) async throws -> VoiceProcessingResult
+    private let processHandler: @Sendable (RecordingMetadata, NodeContext?) async throws -> OperationGenerationResult
 
     public init<P: VoiceProcessingPipeline>(_ pipeline: P) {
         self.processHandler = { metadata, nodeContext in
@@ -10,7 +10,7 @@ public struct AnyVoiceProcessingPipeline: VoiceProcessingPipeline {
     public func process(
         metadata: RecordingMetadata,
         nodeContext: NodeContext?
-    ) async throws -> VoiceProcessingResult {
+    ) async throws -> OperationGenerationResult {
         try await processHandler(metadata, nodeContext)
     }
 }

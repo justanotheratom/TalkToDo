@@ -11,6 +11,7 @@ public struct MainContentView: View {
     @State private var undoManager = UndoManager()
     @State private var voiceInputStore = VoiceInputStore()
     @State private var voiceCoordinator: VoiceInputCoordinator?
+    @State private var textCoordinator: TextInputCoordinator?
     @State private var llmService = LLMInferenceService()
     @State private var onboardingStore: OnboardingStore?
     @State private var processingSettings = VoiceProcessingSettingsStore()
@@ -63,12 +64,10 @@ public struct MainContentView: View {
                 // Microphone input bar with processing/undo feedback
                 VStack(spacing: 0) {
                     // Processing indicator
-                    if let coordinator = voiceCoordinator,
-                       coordinator.isProcessing,
-                       let transcript = coordinator.processingTranscript {
+                    if let info = activeProcessingInfo {
                         ProcessingPill(
-                            transcript: transcript,
-                            isError: coordinator.processingError != nil
+                            transcript: info.text,
+                            isError: info.isError
                         )
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
@@ -171,19 +170,29 @@ public struct MainContentView: View {
             AppLogger.ui().logError(event: "app:initFailed", error: error)
         }
 
-        // Initialize coordinator
+        // Initialize coordinators
         let factory = VoiceProcessingPipelineFactory(
             settingsStore: processingSettings,
             llmService: llmService
         )
         pipelineFactory = factory
-        let pipeline = factory.currentPipeline()
+
+        let voicePipeline = factory.currentPipeline()
         voiceCoordinator = VoiceInputCoordinator(
             eventStore: store,
-            pipeline: pipeline,
+            pipeline: voicePipeline,
             mode: processingSettings.mode,
             undoManager: undoManager
         )
+
+        let textPipeline = factory.currentTextPipeline()
+        textCoordinator = TextInputCoordinator(
+            eventStore: store,
+            pipeline: textPipeline,
+            mode: processingSettings.mode,
+            undoManager: undoManager
+        )
+
         AppLogger.ui().log(event: "app:pipelineInitialized", data: [
             "mode": processingSettings.mode.rawValue
         ])
@@ -210,6 +219,22 @@ public struct MainContentView: View {
         } catch {
             AppLogger.ui().logError(event: "app:modelLoadFailed", error: error)
         }
+    }
+
+    private var activeProcessingInfo: (text: String, isError: Bool)? {
+        if let coordinator = voiceCoordinator,
+           coordinator.isProcessing,
+           let transcript = coordinator.processingTranscript {
+            return (transcript, coordinator.processingError != nil)
+        }
+
+        if let coordinator = textCoordinator,
+           coordinator.isProcessing,
+           let text = coordinator.processingText {
+            return (text, coordinator.processingError != nil)
+        }
+
+        return nil
     }
 
     // MARK: - Node Actions
@@ -300,18 +325,10 @@ public struct MainContentView: View {
 
     private func handleTextInput(_ text: String) {
         Task {
-            guard let coordinator = voiceCoordinator else { return }
+            guard let coordinator = textCoordinator else { return }
 
-            let metadata = RecordingMetadata(
-                transcript: text,
-                audioURL: nil,
-                duration: 0,
-                sampleRate: nil,
-                localeIdentifier: Locale.current.identifier
-            )
-
-            await coordinator.processRecording(
-                metadata: metadata,
+            await coordinator.processText(
+                text,
                 nodeContext: selectedNodeContext
             )
 
@@ -320,11 +337,17 @@ public struct MainContentView: View {
     }
 
     private func updateProcessingPipeline(for mode: ProcessingMode, previousMode: ProcessingMode) {
-        guard let factory = pipelineFactory,
-              let coordinator = voiceCoordinator else { return }
+        guard let factory = pipelineFactory else { return }
 
-        let pipeline = factory.pipeline(for: mode)
-        coordinator.updatePipeline(pipeline, mode: mode)
+        if let voice = voiceCoordinator {
+            let voicePipeline = factory.pipeline(for: mode)
+            voice.updatePipeline(voicePipeline, mode: mode)
+        }
+
+        if let text = textCoordinator {
+            let textPipeline = factory.textPipeline(for: mode)
+            text.updatePipeline(textPipeline, mode: mode)
+        }
 
         if mode == .remoteGemini {
             Task { await llmService.unloadModel() }
