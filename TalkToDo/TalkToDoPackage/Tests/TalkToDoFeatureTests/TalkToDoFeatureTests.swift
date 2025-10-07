@@ -28,7 +28,7 @@ final class TalkToDoFeatureTests: XCTestCase {
         let client = GeminiAPIClient(configuration: configuration)
 
         do {
-            _ = try await client.submitTask(audioURL: URL(fileURLWithPath: "/tmp/fake.caf"), transcript: nil, localeIdentifier: nil)
+            _ = try await client.submitTask(audioURL: nil, transcript: "hello", localeIdentifier: nil)
             XCTFail("Expected missing API key error")
         } catch let error as GeminiAPIClient.ClientError {
             XCTAssertEqual(error, .missingAPIKey)
@@ -43,7 +43,7 @@ final class TalkToDoFeatureTests: XCTestCase {
         let client = GeminiAPIClient(configuration: configuration)
 
         do {
-            _ = try await client.submitTask(audioURL: URL(fileURLWithPath: "/tmp/does-not-exist.caf"), transcript: nil, localeIdentifier: nil)
+            _ = try await client.submitTask(audioURL: URL(fileURLWithPath: "/tmp/does-not-exist.caf"), transcript: "hi", localeIdentifier: nil)
             XCTFail("Expected missing audio error")
         } catch let error as GeminiAPIClient.ClientError {
             XCTAssertEqual(error, .missingAudioFile)
@@ -52,11 +52,33 @@ final class TalkToDoFeatureTests: XCTestCase {
         }
     }
 
-    func testGeminiPipelineFallsBackWithoutAudio() async throws {
-        let baseURL = URL(string: "https://example.com")!
-        let configuration = GeminiAPIClient.Configuration(baseURL: baseURL, apiKey: "abc123")
-        let client = GeminiAPIClient(configuration: configuration)
+    func testGeminiPipelineUsesRemoteForTextOnly() async throws {
+        let response = GeminiStructuredResponse(transcript: "remote", operations: [])
+        let client = StubGeminiClient(result: .success(response))
+        let fallbackResult = VoiceProcessingResult(transcript: "fallback", operations: [])
+        let fallbackPipeline = StubPipeline(result: fallbackResult)
+        let pipeline = GeminiVoicePipeline(
+            client: client,
+            fallback: AnyVoiceProcessingPipeline(fallbackPipeline)
+        )
 
+        let metadata = RecordingMetadata(
+            transcript: "type text",
+            audioURL: nil,
+            duration: 0,
+            sampleRate: nil,
+            localeIdentifier: "en-US"
+        )
+
+        let result = try await pipeline.process(metadata: metadata, nodeContext: nil)
+        XCTAssertEqual(result.transcript, "remote")
+        XCTAssertFalse(fallbackPipeline.didProcess)
+        XCTAssertNil(client.capturedAudioURL)
+        XCTAssertEqual(client.capturedTranscript, "type text")
+    }
+
+    func testGeminiPipelineFallsBackOnClientError() async throws {
+        let client = StubGeminiClient(result: .failure(GeminiAPIClient.ClientError.invalidResponse))
         let fallbackResult = VoiceProcessingResult(transcript: "fallback", operations: [])
         let fallbackPipeline = StubPipeline(result: fallbackResult)
         let pipeline = GeminiVoicePipeline(
@@ -67,7 +89,7 @@ final class TalkToDoFeatureTests: XCTestCase {
         let metadata = RecordingMetadata(
             transcript: "hi",
             audioURL: nil,
-            duration: 1,
+            duration: 0,
             sampleRate: nil,
             localeIdentifier: nil
         )
@@ -75,6 +97,31 @@ final class TalkToDoFeatureTests: XCTestCase {
         let result = try await pipeline.process(metadata: metadata, nodeContext: nil)
         XCTAssertEqual(result.transcript, fallbackResult.transcript)
         XCTAssertTrue(fallbackPipeline.didProcess)
+    }
+}
+
+private final class StubGeminiClient: @unchecked Sendable, GeminiClientProtocol {
+    let result: Result<GeminiStructuredResponse, Error>
+    private(set) var capturedAudioURL: URL?
+    private(set) var capturedTranscript: String?
+
+    init(result: Result<GeminiStructuredResponse, Error>) {
+        self.result = result
+    }
+
+    func submitTask(
+        audioURL: URL?,
+        transcript: String?,
+        localeIdentifier: String?
+    ) async throws -> GeminiStructuredResponse {
+        capturedAudioURL = audioURL
+        capturedTranscript = transcript
+        switch result {
+        case .success(let value):
+            return value
+        case .failure(let error):
+            throw error
+        }
     }
 }
 

@@ -13,10 +13,10 @@ public struct GeminiVoicePipeline: VoiceProcessingPipeline {
         }
     }
 
-    private let client: GeminiAPIClient
+    private let client: any GeminiClientProtocol
     private let fallback: AnyVoiceProcessingPipeline
 
-    public init(client: GeminiAPIClient, fallback: AnyVoiceProcessingPipeline) {
+    public init(client: any GeminiClientProtocol, fallback: AnyVoiceProcessingPipeline) {
         self.client = client
         self.fallback = fallback
     }
@@ -25,14 +25,9 @@ public struct GeminiVoicePipeline: VoiceProcessingPipeline {
         metadata: RecordingMetadata,
         nodeContext: NodeContext?
     ) async throws -> VoiceProcessingResult {
-        guard let audioURL = metadata.audioURL else {
-            AppLogger.ui().log(event: "pipeline:gemini:missingAudio", data: [:])
-            return try await fallback.process(metadata: metadata, nodeContext: nodeContext)
-        }
-
         do {
             let response = try await client.submitTask(
-                audioURL: audioURL,
+                audioURL: metadata.audioURL,
                 transcript: metadata.transcript,
                 localeIdentifier: metadata.localeIdentifier
             )

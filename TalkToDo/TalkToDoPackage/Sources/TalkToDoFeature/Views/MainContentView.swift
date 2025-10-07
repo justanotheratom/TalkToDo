@@ -307,21 +307,8 @@ public struct MainContentView: View {
                 localeIdentifier: Locale.current.identifier
             )
 
-            var finalMetadata = metadata
-            if pipelineFactory != nil, processingSettings.mode == .remoteGemini {
-                let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("typed-" + UUID().uuidString + ".txt")
-                try? text.data(using: .utf8)?.write(to: tempURL)
-                finalMetadata = RecordingMetadata(
-                    transcript: text,
-                    audioURL: tempURL,
-                    duration: 0,
-                    sampleRate: nil,
-                    localeIdentifier: Locale.current.identifier
-                )
-            }
-
             await coordinator.processRecording(
-                metadata: finalMetadata,
+                metadata: metadata,
                 nodeContext: selectedNodeContext
             )
 

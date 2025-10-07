@@ -1,6 +1,14 @@
 import Foundation
 
-public struct GeminiAPIClient: Sendable {
+public protocol GeminiClientProtocol: Sendable {
+    func submitTask(
+        audioURL: URL?,
+        transcript: String?,
+        localeIdentifier: String?
+    ) async throws -> GeminiStructuredResponse
+}
+
+public struct GeminiAPIClient: GeminiClientProtocol {
     public struct Configuration: Sendable {
         public let baseURL: URL
         public let apiKey: String
@@ -53,7 +61,7 @@ public struct GeminiAPIClient: Sendable {
     }
 
     public func submitTask(
-        audioURL: URL,
+        audioURL: URL?,
         transcript: String?,
         localeIdentifier: String?
     ) async throws -> GeminiStructuredResponse {
@@ -61,29 +69,35 @@ public struct GeminiAPIClient: Sendable {
             throw ClientError.missingAPIKey
         }
 
-        guard FileManager.default.fileExists(atPath: audioURL.path) else {
-            throw ClientError.missingAudioFile
-        }
+        var userContent: [[String: Any]] = []
 
-        let audioData = try Data(contentsOf: audioURL)
-        let base64Audio = audioData.base64EncodedString()
-        let audioFormat = audioURL.pathExtension.lowercased().isEmpty ? "wav" : audioURL.pathExtension.lowercased()
+        if let audioURL {
+            guard FileManager.default.fileExists(atPath: audioURL.path) else {
+                throw ClientError.missingAudioFile
+            }
 
-        var userContent: [[String: Any]] = [
-            [
+            let audioData = try Data(contentsOf: audioURL)
+            let base64Audio = audioData.base64EncodedString()
+            let audioFormat = audioURL.pathExtension.lowercased().isEmpty ? "wav" : audioURL.pathExtension.lowercased()
+
+            userContent.append([
                 "type": "input_audio",
                 "input_audio": [
                     "format": audioFormat,
                     "data": base64Audio
                 ]
-            ]
-        ]
+            ])
+        }
 
         if let transcript, !transcript.isEmpty {
             userContent.append([
                 "type": "text",
-                "text": "Transcript preview: \(transcript)"
+                "text": transcript
             ])
+        }
+
+        guard !userContent.isEmpty else {
+            throw ClientError.serializationFailed
         }
 
         var systemPrompt = "You are a voice-to-structure assistant for hierarchical to-do lists. "
