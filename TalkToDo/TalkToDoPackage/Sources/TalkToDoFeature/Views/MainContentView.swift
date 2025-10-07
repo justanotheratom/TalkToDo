@@ -311,22 +311,61 @@ public struct MainContentView: View {
 
         let batchId = NodeID.generateBatchID()
         let newCompletionState = !node.isCompleted
-        let payload = ToggleCompletePayload(nodeId: nodeId, isCompleted: newCompletionState)
 
         do {
+            var eventsToAppend: [NodeEvent] = []
+
+            // Create event for the current node
+            let payload = ToggleCompletePayload(nodeId: nodeId, isCompleted: newCompletionState)
             let payloadData = try JSONEncoder().encode(payload)
             let event = NodeEvent(
                 type: .toggleComplete,
                 payload: payloadData,
                 batchId: batchId
             )
-            try store.appendEvent(event)
+            eventsToAppend.append(event)
+
+            // If completing a child, check if all siblings are now completed
+            if newCompletionState, let parentId = nodeTree.findParent(of: nodeId) {
+                if shouldAutoCompleteParent(parentId: parentId, afterCompletingChild: nodeId) {
+                    let parentPayload = ToggleCompletePayload(nodeId: parentId, isCompleted: true)
+                    let parentPayloadData = try JSONEncoder().encode(parentPayload)
+                    let parentEvent = NodeEvent(
+                        type: .toggleComplete,
+                        payload: parentPayloadData,
+                        batchId: batchId
+                    )
+                    eventsToAppend.append(parentEvent)
+
+                    AppLogger.ui().log(event: "node:autoCompleteParent", data: ["parentId": parentId])
+                }
+            }
+
+            // Append all events in the batch
+            try store.appendEvents(eventsToAppend, batchId: batchId)
             undoManager?.recordBatch(batchId)
 
             AppLogger.ui().log(event: "node:toggleComplete", data: ["nodeId": nodeId, "isCompleted": newCompletionState])
         } catch {
             AppLogger.ui().logError(event: "node:toggleCompleteFailed", error: error)
         }
+    }
+
+    private func shouldAutoCompleteParent(parentId: String, afterCompletingChild childId: String) -> Bool {
+        guard let parent = nodeTree.findNode(id: parentId) else { return false }
+
+        // Check if all children (excluding deleted ones) are or will be completed
+        let allChildrenCompleted = parent.children.allSatisfy { child in
+            if child.isDeleted {
+                return true // Ignore deleted children
+            }
+            if child.id == childId {
+                return true // This child is being completed
+            }
+            return child.isCompleted
+        }
+
+        return allChildrenCompleted && !parent.isCompleted
     }
 
     // MARK: - Voice Input
