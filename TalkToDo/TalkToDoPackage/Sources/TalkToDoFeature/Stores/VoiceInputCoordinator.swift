@@ -17,18 +17,21 @@ public final class VoiceInputCoordinator {
     @ObservationIgnored private var currentMode: ProcessingMode
     @ObservationIgnored private let operationExecutor: OperationExecutor
     @ObservationIgnored private let undoManager: UndoManager
+    @ObservationIgnored private let changeTracker: ChangeTracker
 
     public init(
         eventStore: EventStore,
         pipeline: AnyVoiceProcessingPipeline,
         mode: ProcessingMode,
-        undoManager: UndoManager
+        undoManager: UndoManager,
+        changeTracker: ChangeTracker
     ) {
         self.eventStore = eventStore
         self.pipeline = pipeline
         self.currentMode = mode
         self.operationExecutor = OperationExecutor(eventStore: eventStore, undoManager: undoManager)
         self.undoManager = undoManager
+        self.changeTracker = changeTracker
     }
 
     public func updatePipeline(_ pipeline: AnyVoiceProcessingPipeline, mode: ProcessingMode) {
@@ -84,6 +87,26 @@ public final class VoiceInputCoordinator {
                 "eventCount": summary.eventCount,
                 "batchId": summary.batchId
             ])
+
+            // Track changes for visual feedback
+            var changes: [String: HighlightType] = [:]
+            for operation in result.operations {
+                guard let opType = operation.operationType else { continue }
+
+                switch opType {
+                case .insertNode:
+                    changes[operation.nodeId] = .added
+                case .renameNode:
+                    changes[operation.nodeId] = .edited
+                case .deleteNode:
+                    changes[operation.nodeId] = .deleted
+                case .reparentNode:
+                    changes[operation.nodeId] = .edited
+                }
+            }
+            if !changes.isEmpty {
+                changeTracker.trackChanges(changes)
+            }
 
             isProcessing = false
             processingTranscript = nil

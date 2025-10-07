@@ -8,7 +8,8 @@ public struct MainContentView: View {
 
     @State private var nodeTree = NodeTree()
     @State private var eventStore: EventStore?
-    @State private var undoManager = UndoManager()
+    @State private var changeTracker = ChangeTracker()
+    @State private var undoManager: UndoManager?
     @State private var voiceInputStore = VoiceInputStore()
     @State private var voiceCoordinator: VoiceInputCoordinator?
     @State private var textCoordinator: TextInputCoordinator?
@@ -21,6 +22,7 @@ public struct MainContentView: View {
     @State private var undoFeedbackDismissTask: Task<Void, Never>?
     @State private var selectedNodeContext: NodeContext?
     @State private var showSettings = false
+    @State private var nodeListStore = NodeListStore()
 
     public init() {}
 
@@ -41,6 +43,9 @@ public struct MainContentView: View {
         .task {
             await initializeApp()
         }
+        .onChange(of: changeTracker.highlightedNodes) { _, newHighlights in
+            nodeListStore.highlightedNodes = newHighlights
+        }
         .onChange(of: processingSettings.mode) { oldMode, newMode in
             updateProcessingPipeline(for: newMode, previousMode: oldMode)
         }
@@ -55,10 +60,12 @@ public struct MainContentView: View {
                 // Node list
                 NodeListView(
                     nodeTree: nodeTree,
+                    store: nodeListStore,
                     onToggleCollapse: handleToggleCollapse,
                     onLongPress: handleLongPress,
                     onDelete: handleDelete,
-                    onEdit: handleEdit
+                    onEdit: handleEdit,
+                    onCheckboxToggle: handleCheckboxToggle
                 )
 
                 // Microphone input bar with processing/undo feedback
@@ -113,7 +120,7 @@ public struct MainContentView: View {
             .toolbar {
                 #if os(iOS)
                 ToolbarItem(placement: .topBarLeading) {
-                    if undoManager.canUndo() {
+                    if undoManager?.canUndo() == true {
                         Button(action: handleUndo) {
                             Image(systemName: "arrow.uturn.backward")
                         }
@@ -126,7 +133,7 @@ public struct MainContentView: View {
                 }
                 #else
                 ToolbarItem(placement: .automatic) {
-                    if undoManager.canUndo() {
+                    if undoManager?.canUndo() == true {
                         Button(action: handleUndo) {
                             Image(systemName: "arrow.uturn.backward")
                         }
@@ -154,15 +161,18 @@ public struct MainContentView: View {
             llmService: llmService
         )
 
-        // Initialize event store
+        // Initialize event store and undo manager
         let store = EventStore(modelContext: modelContext, nodeTree: nodeTree)
         eventStore = store
+
+        let undo = UndoManager(changeTracker: changeTracker)
+        undoManager = undo
 
         // Load events and rebuild tree
         do {
             try store.initializeNodeTree()
             // Clear undo history - events loaded from disk are not undoable
-            undoManager.clearHistory()
+            undo.clearHistory()
             AppLogger.ui().log(event: "app:initialized", data: [
                 "nodeCount": nodeTree.allNodeCount()
             ])
@@ -182,7 +192,8 @@ public struct MainContentView: View {
             eventStore: store,
             pipeline: voicePipeline,
             mode: processingSettings.mode,
-            undoManager: undoManager
+            undoManager: undo,
+            changeTracker: changeTracker
         )
 
         let textPipeline = factory.currentTextPipeline()
@@ -190,7 +201,8 @@ public struct MainContentView: View {
             eventStore: store,
             pipeline: textPipeline,
             mode: processingSettings.mode,
-            undoManager: undoManager
+            undoManager: undo,
+            changeTracker: changeTracker
         )
 
         AppLogger.ui().log(event: "app:pipelineInitialized", data: [
@@ -286,7 +298,7 @@ public struct MainContentView: View {
                 batchId: batchId
             )
             try store.appendEvent(event)
-            undoManager.recordBatch(batchId)
+            undoManager?.recordBatch(batchId)
 
             AppLogger.ui().log(event: "node:deleted", data: ["nodeId": nodeId])
         } catch {
@@ -297,6 +309,29 @@ public struct MainContentView: View {
     private func handleEdit(_ nodeId: String) {
         // TODO: Implement edit flow (voice rename)
         AppLogger.ui().log(event: "node:editTapped", data: ["nodeId": nodeId])
+    }
+
+    private func handleCheckboxToggle(_ nodeId: String) {
+        guard let store = eventStore, let node = nodeTree.findNode(id: nodeId) else { return }
+
+        let batchId = NodeID.generateBatchID()
+        let newCompletionState = !node.isCompleted
+        let payload = ToggleCompletePayload(nodeId: nodeId, isCompleted: newCompletionState)
+
+        do {
+            let payloadData = try JSONEncoder().encode(payload)
+            let event = NodeEvent(
+                type: .toggleComplete,
+                payload: payloadData,
+                batchId: batchId
+            )
+            try store.appendEvent(event)
+            undoManager?.recordBatch(batchId)
+
+            AppLogger.ui().log(event: "node:toggleComplete", data: ["nodeId": nodeId, "isCompleted": newCompletionState])
+        } catch {
+            AppLogger.ui().logError(event: "node:toggleCompleteFailed", error: error)
+        }
     }
 
     // MARK: - Voice Input

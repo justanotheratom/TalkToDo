@@ -32,6 +32,7 @@ public final class NodeEvent {
         case deleteNode
         case reparentNode
         case toggleCollapse
+        case toggleComplete
     }
 
     /// Get the event type enum from the stored string
@@ -91,5 +92,15 @@ public struct ToggleCollapsePayload: Codable {
 
     public init(nodeId: String) {
         self.nodeId = nodeId
+    }
+}
+
+public struct ToggleCompletePayload: Codable {
+    public let nodeId: String
+    public let isCompleted: Bool
+
+    public init(nodeId: String, isCompleted: Bool) {
+        self.nodeId = nodeId
+        self.isCompleted = isCompleted
     }
 }

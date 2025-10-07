@@ -205,6 +205,19 @@ public final class EventStore {
                         newParentId: nil,
                         newPosition: nil
                     )
+                case .toggleComplete:
+                    let payload = try JSONDecoder().decode(ToggleCompletePayload.self, from: event.payload)
+                    return EventLogEntry(
+                        timestamp: event.timestamp,
+                        type: type,
+                        nodeId: payload.nodeId,
+                        title: nil,
+                        parentId: nil,
+                        position: nil,
+                        newTitle: nil,
+                        newParentId: nil,
+                        newPosition: nil
+                    )
                 }
             } catch {
                 AppLogger.data().logError(event: "eventStore:historyDecodeFailed", error: error, data: [

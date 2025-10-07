@@ -60,6 +60,9 @@ public final class NodeTree {
             case .toggleCollapse:
                 let payload = try JSONDecoder().decode(ToggleCollapsePayload.self, from: event.payload)
                 applyToggleCollapse(payload)
+            case .toggleComplete:
+                let payload = try JSONDecoder().decode(ToggleCompletePayload.self, from: event.payload)
+                applyToggleComplete(payload)
             }
         } catch {
             AppLogger.data().logError(event: "nodeTree:applyEvent:decodeFailed", error: error)
@@ -133,6 +136,12 @@ public final class NodeTree {
     private func applyToggleCollapse(_ payload: ToggleCollapsePayload) {
         guard var node = findNodeInTree(id: payload.nodeId) else { return }
         node.isCollapsed.toggle()
+        updateNode(node)
+    }
+
+    private func applyToggleComplete(_ payload: ToggleCompletePayload) {
+        guard var node = findNodeInTree(id: payload.nodeId) else { return }
+        node.isCompleted = payload.isCompleted
         updateNode(node)
     }
 

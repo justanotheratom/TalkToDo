@@ -14,17 +14,20 @@ public final class TextInputCoordinator {
     @ObservationIgnored private var pipeline: AnyTextProcessingPipeline
     @ObservationIgnored private var currentMode: ProcessingMode
     @ObservationIgnored private let operationExecutor: OperationExecutor
+    @ObservationIgnored private let changeTracker: ChangeTracker
 
     public init(
         eventStore: EventStore,
         pipeline: AnyTextProcessingPipeline,
         mode: ProcessingMode,
-        undoManager: UndoManager
+        undoManager: UndoManager,
+        changeTracker: ChangeTracker
     ) {
         self.eventStore = eventStore
         self.pipeline = pipeline
         self.currentMode = mode
         self.operationExecutor = OperationExecutor(eventStore: eventStore, undoManager: undoManager)
+        self.changeTracker = changeTracker
     }
 
     public func updatePipeline(_ pipeline: AnyTextProcessingPipeline, mode: ProcessingMode) {
@@ -53,6 +56,26 @@ public final class TextInputCoordinator {
             let context = makeProcessingContext(nodeContext: nodeContext)
             let result = try await pipeline.process(text: trimmed, context: context)
             let summary = try operationExecutor.execute(operations: result.operations)
+
+            // Track changes for visual feedback
+            var changes: [String: HighlightType] = [:]
+            for operation in result.operations {
+                guard let opType = operation.operationType else { continue }
+
+                switch opType {
+                case .insertNode:
+                    changes[operation.nodeId] = .added
+                case .renameNode:
+                    changes[operation.nodeId] = .edited
+                case .deleteNode:
+                    changes[operation.nodeId] = .deleted
+                case .reparentNode:
+                    changes[operation.nodeId] = .edited
+                }
+            }
+            if !changes.isEmpty {
+                changeTracker.trackChanges(changes)
+            }
 
             isProcessing = false
             processingText = nil
