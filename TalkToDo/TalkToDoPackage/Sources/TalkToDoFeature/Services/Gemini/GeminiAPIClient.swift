@@ -14,7 +14,11 @@ public struct GeminiAPIClient: Sendable {
     public enum ClientError: Error, LocalizedError, Equatable {
         case missingAPIKey
         case missingAudioFile
-        case notImplemented
+        case serializationFailed
+        case invalidResponse
+        case httpError(code: Int, message: String?)
+        case emptyContent
+        case invalidJSON
 
         public var errorDescription: String? {
             switch self {
@@ -22,8 +26,20 @@ public struct GeminiAPIClient: Sendable {
                 return "Gemini API key is missing."
             case .missingAudioFile:
                 return "No audio file was provided for Gemini processing."
-            case .notImplemented:
-                return "Gemini client is not implemented yet."
+            case .serializationFailed:
+                return "Failed to serialize request payload for Gemini."
+            case .invalidResponse:
+                return "Received an invalid response from Gemini."
+            case .httpError(let code, let message):
+                let prefix = "Gemini request failed with status \(code)"
+                if let message, !message.isEmpty {
+                    return "\(prefix): \(message)"
+                }
+                return prefix
+            case .emptyContent:
+                return "Gemini response did not contain any content to parse."
+            case .invalidJSON:
+                return "Gemini response did not include valid JSON operations."
             }
         }
     }
@@ -49,8 +65,132 @@ public struct GeminiAPIClient: Sendable {
             throw ClientError.missingAudioFile
         }
 
-        // Placeholder implementation - to be replaced with actual Gemini request.
-        throw ClientError.notImplemented
+        let audioData = try Data(contentsOf: audioURL)
+        let base64Audio = audioData.base64EncodedString()
+        let audioFormat = audioURL.pathExtension.lowercased().isEmpty ? "wav" : audioURL.pathExtension.lowercased()
+
+        var userContent: [[String: Any]] = [
+            [
+                "type": "input_audio",
+                "input_audio": [
+                    "format": audioFormat,
+                    "data": base64Audio
+                ]
+            ]
+        ]
+
+        if let transcript, !transcript.isEmpty {
+            userContent.append([
+                "type": "text",
+                "text": "Transcript preview: \(transcript)"
+            ])
+        }
+
+        var systemPrompt = "You are a voice-to-structure assistant for hierarchical to-do lists. "
+        systemPrompt += "Return JSON that matches the OperationPlan schema with an `operations` array. Each operation must include a unique `nodeId`."
+        if let localeIdentifier {
+            systemPrompt += " User locale: \(localeIdentifier)."
+        }
+
+        let body: [String: Any] = [
+            "model": "gemini-2.5-flash-lite",
+            "temperature": 0.2,
+            "messages": [
+                [
+                    "role": "system",
+                    "content": [
+                        [
+                            "type": "text",
+                            "text": systemPrompt
+                        ]
+                    ]
+                ],
+                [
+                    "role": "user",
+                    "content": userContent
+                ]
+            ]
+        ]
+
+        guard JSONSerialization.isValidJSONObject(body),
+              let httpBody = try? JSONSerialization.data(withJSONObject: body, options: []) else {
+            throw ClientError.serializationFailed
+        }
+
+        var request = URLRequest(url: configuration.baseURL.appendingPathComponent("v1/chat/completions"))
+        request.httpMethod = "POST"
+        request.httpBody = httpBody
+        request.setValue("Bearer \(configuration.apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.timeoutInterval = 30
+
+        let (data, response) = try await urlSession.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw ClientError.invalidResponse
+        }
+
+        guard (200..<300).contains(httpResponse.statusCode) else {
+            let message = String(data: data, encoding: .utf8)
+            throw ClientError.httpError(code: httpResponse.statusCode, message: message)
+        }
+
+        let completion = try JSONDecoder().decode(GeminiChatCompletion.self, from: data)
+        guard let contentText = completion.primaryText else {
+            throw ClientError.emptyContent
+        }
+
+        let jsonFragment = contentText.extractJSONBlock()
+        guard let jsonData = jsonFragment.data(using: .utf8) else {
+            throw ClientError.invalidJSON
+        }
+
+        let plan = try JSONDecoder().decode(OperationPlan.self, from: jsonData)
+        return GeminiStructuredResponse(
+            transcript: transcript,
+            operations: plan.operations
+        )
+    }
+}
+
+private struct GeminiChatCompletion: Decodable {
+    struct Choice: Decodable {
+        let message: Message
+    }
+
+    struct Message: Decodable {
+        let content: [Content]
+    }
+
+    struct Content: Decodable {
+        let type: String
+        let text: String?
+    }
+
+    let choices: [Choice]
+
+    var primaryText: String? {
+        choices
+            .flatMap { $0.message.content }
+            .first(where: { $0.type == "text" && ($0.text?.isEmpty == false) })?
+            .text
+    }
+}
+
+private extension String {
+    func extractJSONBlock() -> String {
+        if let fencedRange = range(of: "```json") ?? range(of: "```JSON") {
+            let remainder = self[fencedRange.upperBound...]
+            if let closing = remainder.range(of: "```") {
+                return String(remainder[..<closing.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+        }
+
+        if let start = firstIndex(of: "{"), let end = lastIndex(of: "}") {
+            return String(self[start...end]).trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        return trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
 

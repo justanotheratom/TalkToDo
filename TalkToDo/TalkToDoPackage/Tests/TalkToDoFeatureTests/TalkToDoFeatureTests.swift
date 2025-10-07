@@ -51,4 +51,48 @@ final class TalkToDoFeatureTests: XCTestCase {
             XCTFail("Unexpected error: \(error)")
         }
     }
+
+    func testGeminiPipelineFallsBackWithoutAudio() async throws {
+        let baseURL = URL(string: "https://example.com")!
+        let configuration = GeminiAPIClient.Configuration(baseURL: baseURL, apiKey: "abc123")
+        let client = GeminiAPIClient(configuration: configuration)
+
+        let fallbackResult = VoiceProcessingResult(transcript: "fallback", operations: [])
+        let fallbackPipeline = StubPipeline(result: fallbackResult)
+        let pipeline = GeminiVoicePipeline(
+            client: client,
+            fallback: AnyVoiceProcessingPipeline(fallbackPipeline)
+        )
+
+        let metadata = RecordingMetadata(
+            transcript: "hi",
+            audioURL: nil,
+            duration: 1,
+            sampleRate: nil,
+            localeIdentifier: nil
+        )
+
+        let result = try await pipeline.process(metadata: metadata, nodeContext: nil)
+        XCTAssertEqual(result.transcript, fallbackResult.transcript)
+        XCTAssertTrue(fallbackPipeline.didProcess)
+    }
+}
+
+private final class StubPipeline: @unchecked Sendable, VoiceProcessingPipeline {
+    let result: VoiceProcessingResult
+    private(set) var invocationCount = 0
+
+    init(result: VoiceProcessingResult) {
+        self.result = result
+    }
+
+    var didProcess: Bool { invocationCount > 0 }
+
+    func process(
+        metadata: RecordingMetadata,
+        nodeContext: NodeContext?
+    ) async throws -> VoiceProcessingResult {
+        invocationCount += 1
+        return result
+    }
 }
