@@ -1,4 +1,5 @@
 import SwiftUI
+import TalkToDoShared
 
 #if os(iOS)
 import UIKit
@@ -6,6 +7,8 @@ import UIKit
 
 @available(iOS 18.0, macOS 15.0, *)
 public struct MicrophoneInputBar: View {
+    @EnvironmentObject private var fontPreference: FontPreference
+
     let status: VoiceInputStore.Status
     let isEnabled: Bool
     let liveTranscript: String?
@@ -117,12 +120,12 @@ public struct MicrophoneInputBar: View {
             Spacer(minLength: 0)
             VStack(alignment: .leading, spacing: 2) {
                 Text(microphonePrimaryText)
-                    .font(.subheadline.weight(.medium))
+                    .font(fontPreference.selectedFont.subheadline)
                     .foregroundStyle(microphonePrimaryColor)
 
                 if let detail = microphoneDetailText {
                     Text(detail)
-                        .font(.caption2)
+                        .font(fontPreference.selectedFont.caption)
                         .foregroundStyle(.secondary)
                 }
             }

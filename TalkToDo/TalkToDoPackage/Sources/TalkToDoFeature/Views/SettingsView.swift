@@ -13,6 +13,7 @@ public struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.eventStore) private var eventStore
     @Environment(\.undoManager) private var undoManager
+    @EnvironmentObject private var fontPreference: FontPreference
 
     @Bindable private var settingsStore: VoiceProcessingSettingsStore
 
@@ -59,6 +60,21 @@ public struct SettingsView: View {
                     } else {
                         remoteControls
                     }
+                }
+
+                Section("Appearance") {
+                    Picker("Font", selection: $fontPreference.selectedFont) {
+                        ForEach(AppFont.allCases, id: \.self) { font in
+                            Text(font.displayName)
+                                .font(font.body)
+                                .tag(font)
+                        }
+                    }
+                    .pickerStyle(.menu)
+
+                    Text("Sample preview of selected font")
+                        .font(fontPreference.selectedFont.body)
+                        .foregroundStyle(.secondary)
                 }
 
                 Section {

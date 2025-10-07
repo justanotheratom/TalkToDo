@@ -1,7 +1,10 @@
 import SwiftUI
+import TalkToDoShared
 
 @available(iOS 18.0, macOS 15.0, *)
 public struct EnhancedNodeRow: View {
+    @EnvironmentObject private var fontPreference: FontPreference
+
     let node: Node
     let depth: Int
     let highlightType: HighlightType?
@@ -48,8 +51,7 @@ public struct EnhancedNodeRow: View {
 
             // Title
             Text(node.title)
-                .font(depth == 0 ? .body : .subheadline)
-                .fontWeight(depth == 0 && !node.children.isEmpty ? .medium : .regular)
+                .font(depth == 0 ? fontPreference.selectedFont.body : fontPreference.selectedFont.subheadline)
                 .foregroundStyle(node.isCompleted ? .secondary : .primary)
                 .strikethrough(node.isCompleted, color: .secondary)
                 .lineLimit(3)

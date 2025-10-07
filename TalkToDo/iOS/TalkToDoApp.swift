@@ -1,10 +1,12 @@
 import SwiftUI
 import SwiftData
 import TalkToDoFeature
+import TalkToDoShared
 
 @main
 struct TalkToDoApp: App {
     let modelContainer: ModelContainer
+    @StateObject private var fontPreference = FontPreference()
 
     init() {
         do {
@@ -27,6 +29,7 @@ struct TalkToDoApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(fontPreference)
         }
         .modelContainer(modelContainer)
     }
