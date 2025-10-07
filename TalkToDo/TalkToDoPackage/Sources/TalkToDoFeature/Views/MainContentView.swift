@@ -325,19 +325,36 @@ public struct MainContentView: View {
             )
             eventsToAppend.append(event)
 
-            // If completing a child, check if all siblings are now completed
-            if newCompletionState, let parentId = nodeTree.findParent(of: nodeId) {
-                if shouldAutoCompleteParent(parentId: parentId, afterCompletingChild: nodeId) {
-                    let parentPayload = ToggleCompletePayload(nodeId: parentId, isCompleted: true)
-                    let parentPayloadData = try JSONEncoder().encode(parentPayload)
-                    let parentEvent = NodeEvent(
-                        type: .toggleComplete,
-                        payload: parentPayloadData,
-                        batchId: batchId
-                    )
-                    eventsToAppend.append(parentEvent)
+            // Check if parent should be auto-completed or auto-uncompleted
+            if let parentId = nodeTree.findParent(of: nodeId) {
+                if newCompletionState {
+                    // Completing a child - check if all siblings are now completed
+                    if shouldAutoCompleteParent(parentId: parentId, afterCompletingChild: nodeId) {
+                        let parentPayload = ToggleCompletePayload(nodeId: parentId, isCompleted: true)
+                        let parentPayloadData = try JSONEncoder().encode(parentPayload)
+                        let parentEvent = NodeEvent(
+                            type: .toggleComplete,
+                            payload: parentPayloadData,
+                            batchId: batchId
+                        )
+                        eventsToAppend.append(parentEvent)
 
-                    AppLogger.ui().log(event: "node:autoCompleteParent", data: ["parentId": parentId])
+                        AppLogger.ui().log(event: "node:autoCompleteParent", data: ["parentId": parentId])
+                    }
+                } else {
+                    // Uncompleting a child - check if parent is completed and should be uncompleted
+                    if shouldAutoUncompleteParent(parentId: parentId) {
+                        let parentPayload = ToggleCompletePayload(nodeId: parentId, isCompleted: false)
+                        let parentPayloadData = try JSONEncoder().encode(parentPayload)
+                        let parentEvent = NodeEvent(
+                            type: .toggleComplete,
+                            payload: parentPayloadData,
+                            batchId: batchId
+                        )
+                        eventsToAppend.append(parentEvent)
+
+                        AppLogger.ui().log(event: "node:autoUncompleteParent", data: ["parentId": parentId])
+                    }
                 }
             }
 
@@ -366,6 +383,13 @@ public struct MainContentView: View {
         }
 
         return allChildrenCompleted && !parent.isCompleted
+    }
+
+    private func shouldAutoUncompleteParent(parentId: String) -> Bool {
+        guard let parent = nodeTree.findNode(id: parentId) else { return false }
+
+        // Only auto-uncomplete if parent is currently completed
+        return parent.isCompleted
     }
 
     // MARK: - Voice Input
