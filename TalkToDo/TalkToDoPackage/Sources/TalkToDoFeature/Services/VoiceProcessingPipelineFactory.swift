@@ -37,8 +37,14 @@ public final class VoiceProcessingPipelineFactory {
     }
 
     private func geminiPipeline() -> GeminiVoicePipeline? {
-        guard let apiKey = apiKeyProvider(), !apiKey.isEmpty else {
+        let keyFromStore = settingsStore.remoteAPIKey
+        let resolvedKey = keyFromStore?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let apiKey = (resolvedKey?.isEmpty == false ? resolvedKey : apiKeyProvider()) ?? ""
+
+        guard !apiKey.isEmpty else {
             AppLogger.ui().log(event: "pipeline:factory:missingGeminiKey", data: [:])
+            cachedGeminiPipeline = nil
+            cachedGeminiAPIKey = nil
             return nil
         }
 

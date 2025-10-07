@@ -1,6 +1,11 @@
 import SwiftUI
 import SwiftData
 import Observation
+#if os(iOS)
+import UIKit
+#else
+import AppKit
+#endif
 import TalkToDoShared
 
 @available(iOS 18.0, macOS 15.0, *)
@@ -16,6 +21,7 @@ public struct SettingsView: View {
     @State private var storage = ModelStorageService()
     @State private var downloadService = ModelDownloadService()
     @State private var showDeleteDataAlert = false
+    @State private var pasteFeedback: (message: String, isError: Bool)?
 
     public init(settingsStore: VoiceProcessingSettingsStore) {
         self._settingsStore = Bindable(settingsStore)
@@ -24,7 +30,7 @@ public struct SettingsView: View {
     public var body: some View {
         NavigationStack {
             Form {
-                Section("Voice Processing") {
+                Section("AI Processing") {
                     let modeBinding = Binding(
                         get: { settingsStore.mode },
                         set: { settingsStore.update(mode: $0) }
@@ -47,20 +53,11 @@ public struct SettingsView: View {
                             .font(.caption)
                             .foregroundStyle(.orange)
                     }
-                }
 
-                if settingsStore.mode == .onDevice {
-                    Section("LLM Model") {
-                        ForEach(ModelCatalog.all) { model in
-                            ModelRow(
-                                model: model,
-                                isSelected: selectedModelSlug == model.slug,
-                                downloadState: downloadStates[model.slug] ?? .notStarted,
-                                onSelect: { selectedModelSlug = model.slug },
-                                onDownload: { downloadModel(model) },
-                                onDelete: { deleteModel(model) }
-                            )
-                        }
+                    if settingsStore.mode == .onDevice {
+                        onDeviceControls
+                    } else {
+                        remoteControls
                     }
                 }
 
@@ -113,6 +110,155 @@ public struct SettingsView: View {
         }
         .task {
             loadDownloadStates()
+        }
+    }
+
+    private var onDeviceControls: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Picker("LLM Model", selection: $selectedModelSlug) {
+                ForEach(ModelCatalog.all) { model in
+                    Text(model.displayName)
+                        .tag(model.slug)
+                }
+            }
+            .pickerStyle(.segmented)
+
+            if let model = currentModel {
+                HStack(alignment: .center) {
+                    Text(modelSummary(for: model))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    controlButton(for: model)
+                }
+            }
+        }
+        .padding(.top, 8)
+    }
+
+    @ViewBuilder
+    private var remoteControls: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            switch settingsStore.geminiKeyStatus {
+            case .missing:
+                Text("No Gemini API key detected. Paste one to enable remote processing.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            case .present(let masked):
+                Text("Gemini key linked: \(masked)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            HStack {
+                Button(action: pasteGeminiKey) {
+                    Label("Paste API Key", systemImage: "doc.on.clipboard")
+                }
+                .buttonStyle(.borderedProminent)
+
+                if case .present = settingsStore.geminiKeyStatus {
+                    Button(role: .destructive, action: clearGeminiKey) {
+                        Label("Clear", systemImage: "trash")
+                    }
+                    .buttonStyle(.bordered)
+                }
+            }
+
+            if let feedback = pasteFeedback {
+                Text(feedback.message)
+                    .font(.caption)
+                    .foregroundStyle(feedback.isError ? Color.red : Color.green)
+            }
+        }
+        .padding(.top, 8)
+    }
+
+    private var currentModel: ModelCatalogEntry? {
+        if let match = ModelCatalog.all.first(where: { $0.slug == selectedModelSlug }) {
+            return match
+        }
+        if let first = ModelCatalog.all.first {
+            selectedModelSlug = first.slug
+            return first
+        }
+        return nil
+    }
+
+    private func modelSummary(for model: ModelCatalogEntry) -> String {
+        let platform = platformDisplayName(for: model.recommendedPlatform)
+        return "~\(model.estimatedSizeMB) MB • \(platform)"
+    }
+
+    @ViewBuilder
+    private func controlButton(for model: ModelCatalogEntry) -> some View {
+        switch downloadStates[model.slug] ?? .notStarted {
+        case .notStarted:
+            Button("Download") { downloadModel(model) }
+                .buttonStyle(.borderedProminent)
+        case .inProgress(let progress):
+            HStack(spacing: 8) {
+                ProgressView(value: progress)
+                    .frame(width: 80)
+                Text("Downloading")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        case .downloaded:
+            HStack(spacing: 12) {
+                Text("Installed")
+                    .font(.caption)
+                    .foregroundStyle(.green)
+                Button("Delete", role: .destructive) { deleteModel(model) }
+                    .buttonStyle(.bordered)
+            }
+        case .failed(let error):
+            VStack(alignment: .leading, spacing: 4) {
+                Text(error)
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                Button("Retry") { downloadModel(model) }
+                    .buttonStyle(.borderedProminent)
+            }
+        }
+    }
+
+    private func pasteGeminiKey() {
+        #if os(iOS)
+        let clipboard = UIPasteboard.general.string
+        #else
+        let clipboard = NSPasteboard.general.string(forType: .string)
+        #endif
+
+        guard let value = clipboard?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else {
+            setPasteFeedback("Clipboard is empty", isError: true)
+            return
+        }
+
+        settingsStore.updateGeminiAPIKey(value)
+        setPasteFeedback("API key saved", isError: false)
+    }
+
+    private func clearGeminiKey() {
+        settingsStore.updateGeminiAPIKey(nil)
+        setPasteFeedback("API key removed", isError: false)
+    }
+
+
+    private func setPasteFeedback(_ message: String, isError: Bool) {
+        pasteFeedback = (message, isError)
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(3))
+            if pasteFeedback?.message == message {
+                pasteFeedback = nil
+            }
+        }
+    }
+
+    private func platformDisplayName(for platform: ModelCatalogEntry.Platform) -> String {
+        switch platform {
+        case .iOS: return "Recommended for iPhone"
+        case .macOS: return "Recommended for Mac"
+        case .both: return "All devices"
         }
     }
 
@@ -177,75 +323,6 @@ public struct SettingsView: View {
             dismiss()
         } catch {
             AppLogger.ui().logError(event: "settings:deleteAllDataFailed", error: error)
-        }
-    }
-}
-
-// MARK: - Model Row
-
-@available(iOS 18.0, macOS 15.0, *)
-private struct ModelRow: View {
-    let model: ModelCatalogEntry
-    let isSelected: Bool
-    let downloadState: DownloadState
-    let onSelect: () -> Void
-    let onDownload: () -> Void
-    let onDelete: () -> Void
-
-    var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(model.displayName)
-                    .font(.body)
-                    .fontWeight(isSelected ? .semibold : .regular)
-
-                Text("\(model.estimatedSizeMB) MB • \(recommendedPlatformText)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-
-            // Download/Delete button
-            Group {
-                switch downloadState {
-                case .notStarted:
-                    Button("Download", action: onDownload)
-                        .buttonStyle(.bordered)
-
-                case .inProgress(let progress):
-                    ProgressView(value: progress, total: 1.0)
-                        .frame(width: 60)
-
-                case .downloaded:
-                    Button(action: onDelete) {
-                        Image(systemName: "trash")
-                            .foregroundStyle(.red)
-                    }
-
-                case .failed:
-                    Button("Retry", action: onDownload)
-                        .buttonStyle(.bordered)
-                        .tint(.orange)
-                }
-            }
-        }
-        .contentShape(Rectangle())
-        .onTapGesture {
-            if case .downloaded = downloadState {
-                onSelect()
-            }
-        }
-    }
-
-    private var recommendedPlatformText: String {
-        switch model.recommendedPlatform {
-        case .iOS:
-            return "Recommended for iPhone"
-        case .macOS:
-            return "Recommended for Mac"
-        case .both:
-            return "All devices"
         }
     }
 }

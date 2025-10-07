@@ -43,6 +43,9 @@ public struct MainContentView: View {
         .onChange(of: processingSettings.mode) { oldMode, newMode in
             updateProcessingPipeline(for: newMode, previousMode: oldMode)
         }
+        .onChange(of: processingSettings.remoteAPIKey) { _, _ in
+            updateProcessingPipeline(for: processingSettings.mode, previousMode: processingSettings.mode)
+        }
     }
 
     private var mainContent: some View {

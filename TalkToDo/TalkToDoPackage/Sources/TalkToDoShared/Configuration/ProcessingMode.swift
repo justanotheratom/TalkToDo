@@ -38,11 +38,13 @@ public enum ProcessingMode: String, CaseIterable, Sendable {
 public final class VoiceProcessingSettingsStore {
     private enum DefaultsKey {
         static let mode = "voiceProcessingMode"
+        static let geminiAPIKey = "geminiAPIKey"
     }
 
     private let defaults: UserDefaults
 
     public private(set) var mode: ProcessingMode
+    public private(set) var remoteAPIKey: String?
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -53,10 +55,31 @@ public final class VoiceProcessingSettingsStore {
         } else {
             mode = .onDevice
         }
+
+        remoteAPIKey = defaults.string(forKey: DefaultsKey.geminiAPIKey)
     }
 
     public func update(mode: ProcessingMode) {
         self.mode = mode
         defaults.set(mode.rawValue, forKey: DefaultsKey.mode)
+    }
+
+    public func updateGeminiAPIKey(_ key: String?) {
+        let trimmed = key?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let trimmed, !trimmed.isEmpty {
+            remoteAPIKey = trimmed
+            defaults.set(trimmed, forKey: DefaultsKey.geminiAPIKey)
+        } else {
+            remoteAPIKey = nil
+            defaults.removeObject(forKey: DefaultsKey.geminiAPIKey)
+        }
+    }
+
+    public var geminiKeyStatus: GeminiKeyStatus {
+        guard let key = remoteAPIKey, !key.isEmpty else {
+            return .missing
+        }
+        let masked = String(repeating: "•", count: max(4, key.count - 4)) + key.suffix(4)
+        return .present(masked: masked)
     }
 }
