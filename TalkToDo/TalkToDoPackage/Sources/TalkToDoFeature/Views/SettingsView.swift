@@ -86,6 +86,10 @@ public struct SettingsView: View {
                 }
 
                 Section {
+                    NavigationLink("Changelog") {
+                        ChangelogView()
+                    }
+
                     NavigationLink("Attributions") {
                         AttributionsView()
                     }

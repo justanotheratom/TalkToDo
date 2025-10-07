@@ -9,7 +9,7 @@ import TalkToDoShared
 @Observable
 public final class EventStore {
     private let modelContext: ModelContext
-    private let nodeTree: NodeTree
+    public let nodeTree: NodeTree
     private let launchTimestamp: Date
     private let eventHistoryLimit = 20
 
