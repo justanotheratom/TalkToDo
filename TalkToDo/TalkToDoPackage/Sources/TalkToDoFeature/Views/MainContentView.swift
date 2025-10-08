@@ -63,6 +63,7 @@ public struct MainContentView: View {
                     store: nodeListStore,
                     onToggleCollapse: handleToggleCollapse,
                     onLongPress: handleLongPress,
+                    onLongPressRelease: handleMicrophoneRelease,
                     onDelete: handleDelete,
                     onEdit: handleEdit,
                     onCheckboxToggle: handleCheckboxToggle
@@ -270,13 +271,42 @@ public struct MainContentView: View {
     }
 
     private func handleLongPress(_ node: Node) {
+        // Build node context with parent information
+        let parentId = nodeTree.findParent(of: node.id)
+        let parent = parentId.flatMap { nodeTree.findNode(id: $0) }
+
         selectedNodeContext = NodeContext(
             nodeId: node.id,
             title: node.title,
-            depth: 0  // TODO: Calculate actual depth
+            depth: 0,  // TODO: Calculate actual depth
+            parentId: parentId,
+            parentTitle: parent?.title
         )
 
-        AppLogger.ui().log(event: "node:longPress", data: ["nodeId": node.id])
+        // Set selected node for visual feedback
+        nodeListStore.setSelectedNode(node.id)
+
+        // Start recording immediately
+        Task {
+            await voiceInputStore.startRecording { metadata in
+                Task {
+                    guard let coordinator = voiceCoordinator else { return }
+
+                    await coordinator.processRecording(
+                        metadata: metadata,
+                        nodeContext: selectedNodeContext
+                    )
+
+                    selectedNodeContext = nil
+                    nodeListStore.setSelectedNode(nil)
+                }
+            }
+        }
+
+        AppLogger.ui().log(event: "node:longPress", data: [
+            "nodeId": node.id,
+            "hasParent": parentId != nil
+        ])
     }
 
     private func handleDelete(_ nodeId: String) {
@@ -417,6 +447,7 @@ public struct MainContentView: View {
         Task {
             await voiceInputStore.finishRecording()
             selectedNodeContext = nil
+            nodeListStore.setSelectedNode(nil)
         }
     }
 

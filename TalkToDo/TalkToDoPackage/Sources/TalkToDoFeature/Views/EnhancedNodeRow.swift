@@ -9,12 +9,14 @@ public struct EnhancedNodeRow: View {
     let depth: Int
     let highlightType: HighlightType?
     let isRecording: Bool
+    let isContextSelected: Bool  // NEW: indicates node is selected for voice context
     let showChevron: Bool  // NEW: control whether to show our custom chevron
 
     let onCheckboxToggle: () -> Void
     let onNavigateInto: () -> Void
     let onTitleTap: () -> Void
     let onLongPress: () -> Void
+    let onLongPressRelease: () -> Void
     let onDelete: () -> Void
     let onEdit: () -> Void
 
@@ -23,11 +25,13 @@ public struct EnhancedNodeRow: View {
         depth: Int,
         highlightType: HighlightType? = nil,
         isRecording: Bool = false,
+        isContextSelected: Bool = false,  // NEW: default to false
         showChevron: Bool = true,  // NEW: default to true for backward compatibility
         onCheckboxToggle: @escaping () -> Void,
         onNavigateInto: @escaping () -> Void,
         onTitleTap: @escaping () -> Void,
         onLongPress: @escaping () -> Void,
+        onLongPressRelease: @escaping () -> Void,
         onDelete: @escaping () -> Void,
         onEdit: @escaping () -> Void
     ) {
@@ -35,11 +39,13 @@ public struct EnhancedNodeRow: View {
         self.depth = depth
         self.highlightType = highlightType
         self.isRecording = isRecording
+        self.isContextSelected = isContextSelected
         self.showChevron = showChevron
         self.onCheckboxToggle = onCheckboxToggle
         self.onNavigateInto = onNavigateInto
         self.onTitleTap = onTitleTap
         self.onLongPress = onLongPress
+        self.onLongPressRelease = onLongPressRelease
         self.onDelete = onDelete
         self.onEdit = onEdit
     }
@@ -76,31 +82,61 @@ public struct EnhancedNodeRow: View {
         }
         .padding(.vertical, 12)
         .padding(.horizontal, 16)
-        .background(rowBackground)
+        .background(
+            Group {
+                if isContextSelected {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.accentColor.opacity(0.04))
+                        .overlay(rowBackground)
+                } else {
+                    rowBackground
+                }
+            }
+        )
         .overlay(
             RoundedRectangle(cornerRadius: 12)
                 .stroke(
                     LinearGradient(
-                        colors: [Color.accentColor, Color.accentColor.opacity(0.6)],
+                        colors: isContextSelected
+                            ? [Color.accentColor.opacity(0.5), Color.accentColor.opacity(0.3)]
+                            : isRecording
+                                ? [Color.accentColor, Color.accentColor.opacity(0.6)]
+                                : [Color.clear],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
-                    lineWidth: isRecording ? 2 : 0
+                    lineWidth: isContextSelected ? 1.5 : (isRecording ? 2 : 0)
                 )
                 .scaleEffect(isRecording ? 1.02 : 1.0)
-                .shadow(color: Color.accentColor.opacity(isRecording ? 0.4 : 0), radius: 12, x: 0, y: 4)
+                .shadow(
+                    color: isContextSelected
+                        ? Color.accentColor.opacity(0.15)
+                        : Color.accentColor.opacity(isRecording ? 0.4 : 0),
+                    radius: isContextSelected ? 8 : 12,
+                    x: 0,
+                    y: 4
+                )
                 .animation(
                     isRecording
                         ? .easeInOut(duration: 0.8).repeatForever(autoreverses: true)
-                        : .default,
+                        : .spring(response: 0.3, dampingFraction: 0.7),
                     value: isRecording
                 )
+                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isContextSelected)
         )
         .padding(.leading, depth > 0 ? CGFloat(depth * 24) : 0)
         .opacity(node.isCompleted ? 0.5 : 1.0)
-        .onLongPressGesture(minimumDuration: 0.5) {
-            onLongPress()
-        }
+        .gesture(
+            LongPressGesture(minimumDuration: 0.5)
+                .onEnded { _ in
+                    onLongPress()
+                }
+                .sequenced(before: DragGesture(minimumDistance: 0)
+                    .onEnded { _ in
+                        onLongPressRelease()
+                    }
+                )
+        )
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
             Button(role: .destructive, action: onDelete) {
                 Label("Delete", systemImage: "trash")
@@ -161,6 +197,7 @@ public struct EnhancedNodeRow: View {
             onNavigateInto: {},
             onTitleTap: {},
             onLongPress: {},
+            onLongPressRelease: {},
             onDelete: {},
             onEdit: {}
         )
@@ -173,6 +210,7 @@ public struct EnhancedNodeRow: View {
             onNavigateInto: {},
             onTitleTap: {},
             onLongPress: {},
+            onLongPressRelease: {},
             onDelete: {},
             onEdit: {}
         )
@@ -185,6 +223,7 @@ public struct EnhancedNodeRow: View {
             onNavigateInto: {},
             onTitleTap: {},
             onLongPress: {},
+            onLongPressRelease: {},
             onDelete: {},
             onEdit: {}
         )

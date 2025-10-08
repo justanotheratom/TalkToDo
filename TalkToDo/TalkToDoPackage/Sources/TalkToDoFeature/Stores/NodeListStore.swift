@@ -8,6 +8,7 @@ public final class NodeListStore {
     public var showCompleted = false
     public var highlightedNodes: [String: HighlightType] = [:]
     public var recordingNodeId: String?
+    public var selectedNodeId: String?  // Node selected for voice context
     public var completedNodesToRemove: Set<String> = []
 
     public init() {}
@@ -28,6 +29,10 @@ public final class NodeListStore {
 
     public func setRecordingNode(_ nodeId: String?) {
         recordingNodeId = nodeId
+    }
+
+    public func setSelectedNode(_ nodeId: String?) {
+        selectedNodeId = nodeId
     }
 
     public func scheduleRemoval(of nodeId: String) {

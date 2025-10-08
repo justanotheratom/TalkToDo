@@ -7,6 +7,7 @@ public struct NodeListView: View {
 
     let onToggleCollapse: (String) -> Void
     let onLongPress: (Node) -> Void
+    let onLongPressRelease: () -> Void
     let onDelete: (String) -> Void
     let onEdit: (String) -> Void
     let onCheckboxToggle: (String) -> Void
@@ -16,6 +17,7 @@ public struct NodeListView: View {
         store: NodeListStore,
         onToggleCollapse: @escaping (String) -> Void,
         onLongPress: @escaping (Node) -> Void,
+        onLongPressRelease: @escaping () -> Void,
         onDelete: @escaping (String) -> Void,
         onEdit: @escaping (String) -> Void,
         onCheckboxToggle: @escaping (String) -> Void
@@ -24,6 +26,7 @@ public struct NodeListView: View {
         self.store = store
         self.onToggleCollapse = onToggleCollapse
         self.onLongPress = onLongPress
+        self.onLongPressRelease = onLongPressRelease
         self.onDelete = onDelete
         self.onEdit = onEdit
         self.onCheckboxToggle = onCheckboxToggle
@@ -83,10 +86,12 @@ public struct NodeListView: View {
             showCompleted: store.showCompleted,
             highlightedNodes: store.highlightedNodes,
             recordingNodeId: store.recordingNodeId,
+            selectedNodeId: store.selectedNodeId,
             nodeTree: nodeTree,
             onCheckboxToggle: handleCheckboxToggle,
             onToggleCollapse: onToggleCollapse,
             onLongPress: onLongPress,
+            onLongPressRelease: onLongPressRelease,
             onDelete: onDelete,
             onEdit: onEdit
         )
@@ -150,9 +155,10 @@ public struct NodeListView: View {
     }
 }
 
-#Preview {
-    let tree = NodeTree()
-    let store = NodeListStore()
+#Preview("NodeListView") {
+    @Previewable @State var tree = NodeTree()
+    @Previewable @State var store = NodeListStore()
+
     let root1 = Node(id: "a3f2", title: "Thanksgiving Prep", children: [
         Node(id: "b7e1", title: "Groceries", children: [
             Node(id: "c4d3", title: "turkey"),
@@ -170,6 +176,7 @@ public struct NodeListView: View {
             store: store,
             onToggleCollapse: { _ in },
             onLongPress: { _ in },
+            onLongPressRelease: { },
             onDelete: { _ in },
             onEdit: { _ in },
             onCheckboxToggle: { _ in }

@@ -29,7 +29,8 @@ public struct GeminiVoicePipeline: VoiceProcessingPipeline {
                 transcript: metadata.transcript,
                 localeIdentifier: metadata.localeIdentifier,
                 eventLog: context.eventLog,
-                nodeSnapshot: context.nodeSnapshot
+                nodeSnapshot: context.nodeSnapshot,
+                nodeContext: context.nodeContext
             )
 
             let transcript = response.transcript ?? metadata.transcript ?? ""

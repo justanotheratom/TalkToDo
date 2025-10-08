@@ -7,10 +7,12 @@ public struct NodeDetailView: View {
     let showCompleted: Bool
     let highlightedNodes: [String: HighlightType]
     let recordingNodeId: String?
+    let selectedNodeId: String?
 
     let onCheckboxToggle: (String) -> Void
     let onToggleCollapse: (String) -> Void
     let onLongPress: (Node) -> Void
+    let onLongPressRelease: () -> Void
     let onDelete: (String) -> Void
     let onEdit: (String) -> Void
 
@@ -20,9 +22,11 @@ public struct NodeDetailView: View {
         showCompleted: Bool,
         highlightedNodes: [String: HighlightType],
         recordingNodeId: String?,
+        selectedNodeId: String? = nil,
         onCheckboxToggle: @escaping (String) -> Void,
         onToggleCollapse: @escaping (String) -> Void,
         onLongPress: @escaping (Node) -> Void,
+        onLongPressRelease: @escaping () -> Void,
         onDelete: @escaping (String) -> Void,
         onEdit: @escaping (String) -> Void
     ) {
@@ -31,9 +35,11 @@ public struct NodeDetailView: View {
         self.showCompleted = showCompleted
         self.highlightedNodes = highlightedNodes
         self.recordingNodeId = recordingNodeId
+        self.selectedNodeId = selectedNodeId
         self.onCheckboxToggle = onCheckboxToggle
         self.onToggleCollapse = onToggleCollapse
         self.onLongPress = onLongPress
+        self.onLongPressRelease = onLongPressRelease
         self.onDelete = onDelete
         self.onEdit = onEdit
     }
@@ -47,10 +53,12 @@ public struct NodeDetailView: View {
                     showCompleted: showCompleted,
                     highlightedNodes: highlightedNodes,
                     recordingNodeId: recordingNodeId,
+                    selectedNodeId: selectedNodeId,
                     nodeTree: nodeTree,
                     onCheckboxToggle: onCheckboxToggle,
                     onToggleCollapse: onToggleCollapse,
                     onLongPress: onLongPress,
+                    onLongPressRelease: onLongPressRelease,
                     onDelete: onDelete,
                     onEdit: onEdit
                 )
@@ -85,11 +93,13 @@ struct NodeTreeRow: View {
     let showCompleted: Bool
     let highlightedNodes: [String: HighlightType]
     let recordingNodeId: String?
+    let selectedNodeId: String?
     @Bindable var nodeTree: NodeTree
 
     let onCheckboxToggle: (String) -> Void
     let onToggleCollapse: (String) -> Void
     let onLongPress: (Node) -> Void
+    let onLongPressRelease: () -> Void
     let onDelete: (String) -> Void
     let onEdit: (String) -> Void
 
@@ -104,10 +114,12 @@ struct NodeTreeRow: View {
                     depth: depth,
                     highlightType: highlightedNodes[node.id],
                     isRecording: recordingNodeId == node.id,
+                    isContextSelected: selectedNodeId == node.id,
                     onCheckboxToggle: { onCheckboxToggle(node.id) },
                     onNavigateInto: { },  // No navigation for leaf nodes
                     onTitleTap: { },      // No expand for leaf nodes
                     onLongPress: { onLongPress(node) },
+                    onLongPressRelease: onLongPressRelease,
                     onDelete: { onDelete(node.id) },
                     onEdit: { onEdit(node.id) }
                 )
@@ -118,11 +130,13 @@ struct NodeTreeRow: View {
                     depth: depth,
                     highlightType: highlightedNodes[node.id],
                     isRecording: recordingNodeId == node.id,
+                    isContextSelected: selectedNodeId == node.id,
                     showChevron: true,
                     onCheckboxToggle: { onCheckboxToggle(node.id) },
                     onNavigateInto: { navigateToDetail = true },
                     onTitleTap: { onToggleCollapse(node.id) },
                     onLongPress: { onLongPress(node) },
+                    onLongPressRelease: onLongPressRelease,
                     onDelete: { onDelete(node.id) },
                     onEdit: { onEdit(node.id) }
                 )
@@ -139,10 +153,12 @@ struct NodeTreeRow: View {
                             showCompleted: showCompleted,
                             highlightedNodes: highlightedNodes,
                             recordingNodeId: recordingNodeId,
+                            selectedNodeId: selectedNodeId,
                             nodeTree: nodeTree,
                             onCheckboxToggle: onCheckboxToggle,
                             onToggleCollapse: onToggleCollapse,
                             onLongPress: onLongPress,
+                            onLongPressRelease: onLongPressRelease,
                             onDelete: onDelete,
                             onEdit: onEdit
                         )
@@ -159,9 +175,11 @@ struct NodeTreeRow: View {
             showCompleted: showCompleted,
             highlightedNodes: highlightedNodes,
             recordingNodeId: recordingNodeId,
+            selectedNodeId: selectedNodeId,
             onCheckboxToggle: onCheckboxToggle,
             onToggleCollapse: onToggleCollapse,
             onLongPress: onLongPress,
+            onLongPressRelease: onLongPressRelease,
             onDelete: onDelete,
             onEdit: onEdit
         )

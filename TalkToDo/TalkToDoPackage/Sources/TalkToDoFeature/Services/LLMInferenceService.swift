@@ -176,13 +176,24 @@ public actor LLMInferenceService {
 
     private func createSystemPrompt(nodeContext: NodeContext?) -> String {
         if let context = nodeContext {
+            let parentInfo = if let parentId = context.parentId, let parentTitle = context.parentTitle {
+                """
+
+                Parent node:
+                - ID: \(parentId)
+                - Title: "\(parentTitle)"
+                """
+            } else {
+                ""
+            }
+
             return """
             You are a hierarchical todo list assistant. The user has selected a node and will provide a voice command.
 
             Selected node:
             - ID: \(context.nodeId)
             - Title: "\(context.title)"
-            - Depth: \(context.depth)
+            - Depth: \(context.depth)\(parentInfo)
 
             Your task: Parse the user's command and generate a JSON array of operations to execute.
 
@@ -418,11 +429,15 @@ public struct NodeContext: Sendable {
     public let nodeId: String
     public let title: String
     public let depth: Int
+    public let parentId: String?
+    public let parentTitle: String?
 
-    public init(nodeId: String, title: String, depth: Int) {
+    public init(nodeId: String, title: String, depth: Int, parentId: String? = nil, parentTitle: String? = nil) {
         self.nodeId = nodeId
         self.title = title
         self.depth = depth
+        self.parentId = parentId
+        self.parentTitle = parentTitle
     }
 }
 

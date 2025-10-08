@@ -1,4 +1,5 @@
 import Foundation
+import TalkToDoShared
 
 public protocol GeminiClientProtocol: Sendable {
     func submitTask(
@@ -6,7 +7,8 @@ public protocol GeminiClientProtocol: Sendable {
         transcript: String?,
         localeIdentifier: String?,
         eventLog: [EventLogEntry],
-        nodeSnapshot: [SnapshotNode]
+        nodeSnapshot: [SnapshotNode],
+        nodeContext: NodeContext?
     ) async throws -> GeminiStructuredResponse
 }
 
@@ -67,7 +69,8 @@ public struct GeminiAPIClient: GeminiClientProtocol {
         transcript: String?,
         localeIdentifier: String?,
         eventLog: [EventLogEntry],
-        nodeSnapshot: [SnapshotNode]
+        nodeSnapshot: [SnapshotNode],
+        nodeContext: NodeContext? = nil
     ) async throws -> GeminiStructuredResponse {
         guard !configuration.apiKey.isEmpty else {
             throw ClientError.missingAPIKey
@@ -156,6 +159,35 @@ public struct GeminiAPIClient: GeminiClientProtocol {
         ]
         Do not invent additional fields beyond those described.
         """
+
+        if let context = nodeContext {
+            systemPrompt += """
+
+
+            SELECTED NODE CONTEXT:
+            The user has long-pressed on a specific node before speaking. Interpret their command relative to this node.
+            - Selected Node ID: \(context.nodeId)
+            - Selected Node Title: "\(context.title)"
+            """
+
+            if let parentId = context.parentId, let parentTitle = context.parentTitle {
+                systemPrompt += """
+
+                - Parent Node ID: \(parentId)
+                - Parent Node Title: "\(parentTitle)"
+                """
+            }
+
+            systemPrompt += """
+
+
+            Commands should operate on or relate to the selected node. For example:
+            - "Add X" → Insert child under selected node
+            - "Rename to Y" → Rename selected node
+            - "Delete" → Delete selected node
+            """
+        }
+
         if let localeIdentifier {
             systemPrompt += " User locale: \(localeIdentifier)."
         }
@@ -186,6 +218,17 @@ public struct GeminiAPIClient: GeminiClientProtocol {
             throw ClientError.serializationFailed
         }
 
+        // Log request details
+        let requestStartTime = Date()
+        let requestSizeBytes = httpBody.count
+        AppLogger.llm().log(event: "gemini:requestStart", data: [
+            "requestSizeBytes": requestSizeBytes,
+            "hasNodeContext": nodeContext != nil,
+            "hasAudio": audioURL != nil,
+            "eventLogCount": eventLog.count,
+            "snapshotCount": nodeSnapshot.count
+        ])
+
         var request = URLRequest(url: configuration.baseURL.appendingPathComponent("chat/completions"))
         request.httpMethod = "POST"
         request.httpBody = httpBody
@@ -195,12 +238,18 @@ public struct GeminiAPIClient: GeminiClientProtocol {
         request.timeoutInterval = 30
 
         let (data, response) = try await urlSession.data(for: request)
+        let networkLatencyMs = Int(Date().timeIntervalSince(requestStartTime) * 1000)
+
         guard let httpResponse = response as? HTTPURLResponse else {
             throw ClientError.invalidResponse
         }
 
         guard (200..<300).contains(httpResponse.statusCode) else {
             let message = String(data: data, encoding: .utf8)
+            AppLogger.llm().log(event: "gemini:requestFailed", data: [
+                "statusCode": httpResponse.statusCode,
+                "latencyMs": networkLatencyMs
+            ])
             throw ClientError.httpError(code: httpResponse.statusCode, message: message)
         }
 
@@ -215,6 +264,33 @@ public struct GeminiAPIClient: GeminiClientProtocol {
         }
 
         let plan = try JSONDecoder().decode(OperationPlan.self, from: jsonData)
+
+        // Extract token usage if available
+        let promptTokens = completion.usage?.promptTokens ?? 0
+        let completionTokens = completion.usage?.completionTokens ?? 0
+        let totalTokens = completion.usage?.totalTokens ?? 0
+
+        let totalLatencyMs = Int(Date().timeIntervalSince(requestStartTime) * 1000)
+
+        // Log full LLM response for debugging
+        AppLogger.llm().log(event: "gemini:llmResponse", data: [
+            "rawResponse": contentText,
+            "extractedJSON": jsonFragment,
+            "operationCount": plan.operations.count
+        ])
+
+        AppLogger.llm().log(event: "gemini:requestSuccess", data: [
+            "totalLatencyMs": totalLatencyMs,
+            "networkLatencyMs": networkLatencyMs,
+            "requestSizeBytes": requestSizeBytes,
+            "responseSizeBytes": data.count,
+            "promptTokens": promptTokens,
+            "completionTokens": completionTokens,
+            "totalTokens": totalTokens,
+            "operationCount": plan.operations.count,
+            "hasNodeContext": nodeContext != nil
+        ])
+
         return GeminiStructuredResponse(
             transcript: transcript,
             operations: plan.operations
@@ -255,7 +331,20 @@ private struct GeminiChatCompletion: Decodable {
         let text: String?
     }
 
+    struct Usage: Decodable {
+        let promptTokens: Int?
+        let completionTokens: Int?
+        let totalTokens: Int?
+
+        enum CodingKeys: String, CodingKey {
+            case promptTokens = "prompt_tokens"
+            case completionTokens = "completion_tokens"
+            case totalTokens = "total_tokens"
+        }
+    }
+
     let choices: [Choice]
+    let usage: Usage?
 
     var primaryText: String? {
         for choice in choices {

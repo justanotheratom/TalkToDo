@@ -35,7 +35,8 @@ public struct GeminiTextPipeline: TextProcessingPipeline {
                 transcript: trimmed,
                 localeIdentifier: Locale.current.identifier,
                 eventLog: context.eventLog,
-                nodeSnapshot: context.nodeSnapshot
+                nodeSnapshot: context.nodeSnapshot,
+                nodeContext: context.nodeContext
             )
 
             let transcript = response.transcript ?? trimmed
