@@ -7,12 +7,12 @@ public struct AdvancedSettingsView: View {
     @Environment(\.eventStore) private var eventStore
     @Environment(\.undoManager) private var undoManager
 
-    @Bindable private var settingsStore: VoiceProcessingSettingsStore
+    @Bindable private var settingsStore: ProcessingSettingsStore
 
     @State private var showDeleteDataAlert = false
     @State private var storage = ModelStorageService()
 
-    public init(settingsStore: VoiceProcessingSettingsStore) {
+    public init(settingsStore: ProcessingSettingsStore) {
         self._settingsStore = Bindable(settingsStore)
     }
 
@@ -99,7 +99,8 @@ public struct AdvancedSettingsView: View {
                 return .ready
             }
             // Fall back to stored key
-            switch settingsStore.geminiKeyStatus {
+            let voiceProgram = settingsStore.resolvedVoiceProgram()
+            switch settingsStore.apiKeyStatus(for: voiceProgram.modelConfig.apiKeyName) {
             case .present:
                 return .ready
             case .missing:

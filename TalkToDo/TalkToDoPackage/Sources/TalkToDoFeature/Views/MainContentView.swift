@@ -15,7 +15,7 @@ public struct MainContentView: View {
     @State private var textCoordinator: TextInputCoordinator?
     @State private var llmService = LLMInferenceService()
     @State private var onboardingStore: OnboardingStore?
-    @State private var processingSettings = VoiceProcessingSettingsStore()
+    @State private var processingSettings = ProcessingSettingsStore()
     @State private var pipelineFactory: VoiceProcessingPipelineFactory?
 
     @State private var undoFeedbackMessage: String?
@@ -49,7 +49,10 @@ public struct MainContentView: View {
         .onChange(of: processingSettings.mode) { oldMode, newMode in
             updateProcessingPipeline(for: newMode, previousMode: oldMode)
         }
-        .onChange(of: processingSettings.remoteAPIKey) { _, _ in
+        .onChange(of: processingSettings.selectedVoiceProgramId) { _, _ in
+            updateProcessingPipeline(for: processingSettings.mode, previousMode: processingSettings.mode)
+        }
+        .onChange(of: processingSettings.selectedTextProgramId) { _, _ in
             updateProcessingPipeline(for: processingSettings.mode, previousMode: processingSettings.mode)
         }
     }

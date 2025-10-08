@@ -8,90 +8,110 @@ import TalkToDoShared
 
 @available(iOS 18.0, macOS 15.0, *)
 public struct RemoteSettingsView: View {
-    @Bindable private var settingsStore: VoiceProcessingSettingsStore
+    @Bindable private var settingsStore: ProcessingSettingsStore
 
     @State private var pasteFeedback: (message: String, isError: Bool)?
+    @State private var selectedVoiceProgramId: String
+    @State private var selectedTextProgramId: String
 
-    public init(settingsStore: VoiceProcessingSettingsStore) {
+    public init(settingsStore: ProcessingSettingsStore) {
         self._settingsStore = Bindable(settingsStore)
+        self._selectedVoiceProgramId = State(initialValue: settingsStore.selectedVoiceProgramId ?? ProgramCatalog.shared.defaultVoiceProgram().id)
+        self._selectedTextProgramId = State(initialValue: settingsStore.selectedTextProgramId ?? ProgramCatalog.shared.defaultTextProgram().id)
     }
 
-    private var envAPIKey: String? {
-        ProcessInfo.processInfo.environment["GEMINI_API_KEY"]?.trimmingCharacters(in: .whitespacesAndNewlines)
+    private var voiceProgram: any AIProgram {
+        ProgramCatalog.shared.program(for: selectedVoiceProgramId) ?? ProgramCatalog.shared.defaultVoiceProgram()
     }
-
-    private var hasEnvKey: Bool {
-        if let key = envAPIKey, !key.isEmpty {
-            return true
-        }
-        return false
+    
+    private var textProgram: any AIProgram {
+        ProgramCatalog.shared.program(for: selectedTextProgramId) ?? ProgramCatalog.shared.defaultTextProgram()
+    }
+    
+    private var allRequiredAPIKeys: Set<String> {
+        var keys = Set<String>()
+        keys.insert(voiceProgram.modelConfig.apiKeyName)
+        keys.insert(textProgram.modelConfig.apiKeyName)
+        return keys
     }
 
     public var body: some View {
         Form {
-            Section {
+            Section("Voice Processing") {
+                Picker("Voice Program", selection: $selectedVoiceProgramId) {
+                    ForEach(ProgramCatalog.shared.voicePrograms, id: \.id) { program in
+                        Text(program.displayName)
+                            .tag(program.id)
+                    }
+                }
+                .onChange(of: selectedVoiceProgramId) { _, newValue in
+                    settingsStore.updateSelectedVoiceProgram(id: newValue)
+                }
+                
                 HStack {
-                    Image(systemName: "cloud")
-                        .font(.title2)
+                    Image(systemName: "waveform")
                         .foregroundStyle(.blue)
-                        .frame(width: 44, height: 44)
-                        .background(Color.blue.opacity(0.15))
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Gemini 2.5 Flash Lite")
-                            .font(.headline)
-                        Text(statusText)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(voiceProgram.modelConfig.displayName)
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                        Text("Provider: \(voiceProgram.modelConfig.provider.displayName)")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
+                    Spacer()
+                    StatusBadge(status: convertToStatusBadge(settingsStore.apiKeyStatus(for: voiceProgram.modelConfig.apiKeyName)))
+                }
+            }
+            
+            Section("Text Processing") {
+                Picker("Text Program", selection: $selectedTextProgramId) {
+                    ForEach(ProgramCatalog.shared.textPrograms, id: \.id) { program in
+                        Text(program.displayName)
+                            .tag(program.id)
+                    }
+                }
+                .onChange(of: selectedTextProgramId) { _, newValue in
+                    settingsStore.updateSelectedTextProgram(id: newValue)
+                }
+                
+                HStack {
+                    Image(systemName: "text.cursor")
+                        .foregroundStyle(.green)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(textProgram.modelConfig.displayName)
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                        Text("Provider: \(textProgram.modelConfig.provider.displayName)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    StatusBadge(status: convertToStatusBadge(settingsStore.apiKeyStatus(for: textProgram.modelConfig.apiKeyName)))
                 }
             }
 
             Section {
-                if hasEnvKey {
-                    HStack {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(.green)
-                        Text("Using GEMINI_API_KEY from environment")
-                            .font(.caption)
-                    }
-                } else {
-                    switch settingsStore.geminiKeyStatus {
-                    case .missing:
-                        Button(action: pasteGeminiKey) {
-                            Label("Paste API Key", systemImage: "doc.on.clipboard")
-                        }
-                        .buttonStyle(.borderedProminent)
-
-                    case .present(let masked):
-                        LabeledContent("API Key", value: masked)
-                            .foregroundStyle(.secondary)
-
-                        Button(role: .destructive, action: clearGeminiKey) {
-                            Label("Remove API Key", systemImage: "trash")
-                        }
-                    }
-
-                    if let feedback = pasteFeedback {
-                        Text(feedback.message)
-                            .font(.caption)
-                            .foregroundStyle(feedback.isError ? Color.red : Color.green)
-                    }
+                ForEach(Array(allRequiredAPIKeys).sorted(), id: \.self) { keyName in
+                    APIKeyRow(
+                        keyName: keyName,
+                        status: settingsStore.apiKeyStatus(for: keyName),
+                        onPaste: { pasteAPIKey(for: keyName) },
+                        onClear: { clearAPIKey(for: keyName) },
+                        feedback: pasteFeedback
+                    )
                 }
-            } header: {
-                Text("Configuration")
             } footer: {
-                if hasEnvKey {
-                    Text("Your API key is automatically loaded from the environment. No need to paste it manually.")
-                } else {
-                    Text("Get a free API key from Google AI Studio. Your audio will be uploaded to Google for processing.")
-                }
+                Text("API keys are stored securely in your device's keychain. Environment variables take precedence over stored keys.")
             }
 
             Section {
-                Link(destination: URL(string: "https://aistudio.google.com/app/apikey")!) {
-                    Label("Get a Free API Key", systemImage: "arrow.up.forward.app")
+                ForEach(Array(allRequiredAPIKeys).sorted(), id: \.self) { keyName in
+                    if let provider = getProviderForAPIKey(keyName) {
+                        Link(destination: getAPIKeyURL(for: provider)) {
+                            Label("Get \(keyName) API Key", systemImage: "arrow.up.forward.app")
+                        }
+                    }
                 }
             }
 
@@ -104,7 +124,7 @@ public struct RemoteSettingsView: View {
                             .font(.subheadline)
                             .fontWeight(.medium)
                     }
-                    Text("Remote mode uploads your voice recordings to Google's servers. Audio is processed and deleted immediately. Review Google's privacy policy for details.")
+                    Text("Remote mode uploads your voice recordings to the selected provider's servers. Audio is processed and deleted immediately. Review each provider's privacy policy for details.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -116,19 +136,27 @@ public struct RemoteSettingsView: View {
         #endif
     }
 
-    private var statusText: String {
-        if hasEnvKey {
-            return "Using environment variable"
+    private func getProviderForAPIKey(_ keyName: String) -> ModelProvider? {
+        for config in ModelConfigCatalog.shared.allConfigs {
+            if config.apiKeyName == keyName {
+                return config.provider
+            }
         }
-        switch settingsStore.geminiKeyStatus {
-        case .missing:
-            return "Setup required"
-        case .present:
-            return "Ready to use"
+        return nil
+    }
+    
+    private func getAPIKeyURL(for provider: ModelProvider) -> URL {
+        switch provider {
+        case .gemini:
+            return URL(string: "https://aistudio.google.com/app/apikey")!
+        case .openai:
+            return URL(string: "https://platform.openai.com/api-keys")!
+        case .anthropic:
+            return URL(string: "https://console.anthropic.com/")!
         }
     }
 
-    private func pasteGeminiKey() {
+    private func pasteAPIKey(for keyName: String) {
         #if os(iOS)
         let clipboard = UIPasteboard.general.string
         #else
@@ -140,13 +168,21 @@ public struct RemoteSettingsView: View {
             return
         }
 
-        settingsStore.updateGeminiAPIKey(value)
-        setPasteFeedback("API key saved", isError: false)
+        do {
+            try settingsStore.storeAPIKey(for: keyName, value: value)
+            setPasteFeedback("\(keyName) saved", isError: false)
+        } catch {
+            setPasteFeedback("Failed to save \(keyName)", isError: true)
+        }
     }
 
-    private func clearGeminiKey() {
-        settingsStore.updateGeminiAPIKey(nil)
-        setPasteFeedback("API key removed", isError: false)
+    private func clearAPIKey(for keyName: String) {
+        do {
+            try settingsStore.deleteAPIKey(for: keyName)
+            setPasteFeedback("\(keyName) removed", isError: false)
+        } catch {
+            setPasteFeedback("Failed to remove \(keyName)", isError: true)
+        }
     }
 
     private func setPasteFeedback(_ message: String, isError: Bool) {
@@ -159,3 +195,64 @@ public struct RemoteSettingsView: View {
         }
     }
 }
+
+@available(iOS 18.0, macOS 15.0, *)
+private struct APIKeyRow: View {
+    let keyName: String
+    let status: GeminiKeyStatus
+    let onPaste: () -> Void
+    let onClear: () -> Void
+    let feedback: (message: String, isError: Bool)?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(keyName)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                Spacer()
+                StatusBadge(status: convertToStatusBadge(status))
+            }
+            
+            switch status {
+            case .missing:
+                Button(action: onPaste) {
+                    Label("Paste API Key", systemImage: "doc.on.clipboard")
+                }
+                .buttonStyle(.borderedProminent)
+                
+            case .present:
+                HStack {
+                    Button(role: .destructive, action: onClear) {
+                        Label("Remove", systemImage: "trash")
+                    }
+                    .buttonStyle(.bordered)
+                    
+                    Spacer()
+                    
+                    Button(action: onPaste) {
+                        Label("Update", systemImage: "arrow.clockwise")
+                    }
+                    .buttonStyle(.bordered)
+                }
+            }
+            
+            if let feedback = feedback {
+                Text(feedback.message)
+                    .font(.caption)
+                    .foregroundStyle(feedback.isError ? Color.red : Color.green)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+private func convertToStatusBadge(_ status: GeminiKeyStatus) -> StatusBadge.Status {
+    switch status {
+    case .missing:
+        return .notConfigured
+    case .present:
+        return .ready
+    }
+}
+

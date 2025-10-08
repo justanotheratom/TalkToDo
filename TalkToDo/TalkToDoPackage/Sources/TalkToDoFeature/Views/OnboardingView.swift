@@ -121,7 +121,7 @@ private struct WelcomeStep: View {
 
 @available(iOS 18.0, macOS 15.0, *)
 private struct APIKeySetupStep: View {
-    @Bindable var settingsStore: VoiceProcessingSettingsStore
+    @Bindable var settingsStore: ProcessingSettingsStore
     let onContinue: () -> Void
     let onSkipToOnDevice: () -> Void
 
@@ -176,7 +176,7 @@ private struct APIKeySetupStep: View {
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
                 .padding(.top, 16)
-            } else if case .present = settingsStore.geminiKeyStatus {
+            } else if case .present = settingsStore.apiKeyStatus(for: settingsStore.resolvedVoiceProgram().modelConfig.apiKeyName) {
                 // Key already stored
                 VStack(spacing: 12) {
                     Image(systemName: "checkmark.circle.fill")
@@ -295,8 +295,14 @@ private struct APIKeySetupStep: View {
         isValidating = true
         validationError = nil
 
-        // Store the key
-        settingsStore.updateGeminiAPIKey(trimmed)
+        // Store the key for the default voice program
+        let voiceProgram = settingsStore.resolvedVoiceProgram()
+        do {
+            try settingsStore.storeAPIKey(for: voiceProgram.modelConfig.apiKeyName, value: trimmed)
+        } catch {
+            validationError = "Failed to save API key"
+            return
+        }
 
         // Simulate validation (in production, you'd make an API call)
         Task { @MainActor in
@@ -518,7 +524,7 @@ private struct FailedStep: View {
 }
 
 #Preview("Welcome") {
-    let settingsStore = VoiceProcessingSettingsStore()
+    let settingsStore = ProcessingSettingsStore()
     let store = OnboardingStore(
         voiceInputStore: VoiceInputStore(),
         settingsStore: settingsStore
@@ -527,7 +533,7 @@ private struct FailedStep: View {
 }
 
 #Preview("API Key") {
-    let settingsStore = VoiceProcessingSettingsStore()
+    let settingsStore = ProcessingSettingsStore()
     let store = OnboardingStore(
         voiceInputStore: VoiceInputStore(),
         settingsStore: settingsStore

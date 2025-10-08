@@ -1,22 +1,25 @@
 import Foundation
+import TalkToDoShared
 
-public protocol GeminiClientProtocol: Sendable {
+public protocol RemoteAPIClientProtocol: Sendable {
     func submitTask(
         audioURL: URL?,
         transcript: String?,
         localeIdentifier: String?,
         eventLog: [EventLogEntry],
         nodeSnapshot: [SnapshotNode]
-    ) async throws -> GeminiStructuredResponse
+    ) async throws -> RemoteStructuredResponse
 }
 
-public struct GeminiAPIClient: GeminiClientProtocol {
+public struct RemoteAPIClient: RemoteAPIClientProtocol {
     public struct Configuration: Sendable {
-        public let baseURL: URL
+        public let modelConfig: ModelConfig
+        public let systemPrompt: String
         public let apiKey: String
 
-        public init(baseURL: URL, apiKey: String) {
-            self.baseURL = baseURL
+        public init(modelConfig: ModelConfig, systemPrompt: String, apiKey: String) {
+            self.modelConfig = modelConfig
+            self.systemPrompt = systemPrompt
             self.apiKey = apiKey
         }
     }
@@ -33,23 +36,23 @@ public struct GeminiAPIClient: GeminiClientProtocol {
         public var errorDescription: String? {
             switch self {
             case .missingAPIKey:
-                return "Gemini API key is missing."
+                return "API key is missing."
             case .missingAudioFile:
-                return "No audio file was provided for Gemini processing."
+                return "No audio file was provided for processing."
             case .serializationFailed:
-                return "Failed to serialize request payload for Gemini."
+                return "Failed to serialize request payload."
             case .invalidResponse:
-                return "Received an invalid response from Gemini."
+                return "Received an invalid response from the API."
             case .httpError(let code, let message):
-                let prefix = "Gemini request failed with status \(code)"
+                let prefix = "API request failed with status \(code)"
                 if let message, !message.isEmpty {
                     return "\(prefix): \(message)"
                 }
                 return prefix
             case .emptyContent:
-                return "Gemini response did not contain any content to parse."
+                return "API response did not contain any content to parse."
             case .invalidJSON:
-                return "Gemini response did not include valid JSON operations."
+                return "API response did not include valid JSON operations."
             }
         }
     }
@@ -68,7 +71,7 @@ public struct GeminiAPIClient: GeminiClientProtocol {
         localeIdentifier: String?,
         eventLog: [EventLogEntry],
         nodeSnapshot: [SnapshotNode]
-    ) async throws -> GeminiStructuredResponse {
+    ) async throws -> RemoteStructuredResponse {
         guard !configuration.apiKey.isEmpty else {
             throw ClientError.missingAPIKey
         }
@@ -138,30 +141,13 @@ public struct GeminiAPIClient: GeminiClientProtocol {
             throw ClientError.serializationFailed
         }
 
-        var systemPrompt = """
-        You are a voice-to-structure assistant for hierarchical to-do lists.
-        Always reply with JSON matching this schema: {"operations": [{"type": "insertNode|renameNode|deleteNode|reparentNode", "nodeId": string, "title": string?, "parentId": string?, "position": number?}]}.
-        Use `insertNode` to add list items, setting titles to the task text. Use `reparentNode` to attach children to parents.
-        The user message may be accompanied by:
-          - A chronological event log describing prior insert/rename/delete/reparent actions from this session.
-          - A current hierarchical snapshot of all todo nodes.
-        Use that context to resolve references to existing todos (e.g., "mark it done" should match an item from the snapshot/log).
-        Always output the parent node before any child nodes so every `parentId` references an operation that already appeared earlier in the array.
-        Example for the utterance "I need to buy milk, eggs, spinach from DMart":
-        [
-          {"type":"insertNode","nodeId":"parent","title":"Buy groceries from DMart","parentId":null,"position":0},
-          {"type":"insertNode","nodeId":"milk","title":"Milk","parentId":"parent","position":0},
-          {"type":"insertNode","nodeId":"eggs","title":"Eggs","parentId":"parent","position":1},
-          {"type":"insertNode","nodeId":"spinach","title":"Spinach","parentId":"parent","position":2}
-        ]
-        Do not invent additional fields beyond those described.
-        """
+        var systemPrompt = configuration.systemPrompt
         if let localeIdentifier {
             systemPrompt += " User locale: \(localeIdentifier)."
         }
 
         let body: [String: Any] = [
-            "model": "gemini-2.5-flash-lite",
+            "model": configuration.modelConfig.modelIdentifier,
             "temperature": 0.2,
             "response_format": ["type": "json_object"],
             "messages": [
@@ -186,7 +172,7 @@ public struct GeminiAPIClient: GeminiClientProtocol {
             throw ClientError.serializationFailed
         }
 
-        var request = URLRequest(url: configuration.baseURL.appendingPathComponent("chat/completions"))
+        var request = URLRequest(url: configuration.modelConfig.baseURL.appendingPathComponent("chat/completions"))
         request.httpMethod = "POST"
         request.httpBody = httpBody
         request.setValue("Bearer \(configuration.apiKey)", forHTTPHeaderField: "Authorization")
@@ -215,7 +201,7 @@ public struct GeminiAPIClient: GeminiClientProtocol {
         }
 
         let plan = try JSONDecoder().decode(OperationPlan.self, from: jsonData)
-        return GeminiStructuredResponse(
+        return RemoteStructuredResponse(
             transcript: transcript,
             operations: plan.operations
         )
@@ -289,7 +275,7 @@ private extension String {
     }
 }
 
-public struct GeminiStructuredResponse: Sendable {
+public struct RemoteStructuredResponse: Sendable {
     public let transcript: String?
     public let operations: [Operation]
 

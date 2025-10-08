@@ -43,9 +43,15 @@ public struct NodeListView: View {
             .scrollContentBackground(.hidden)
             .background(backgroundGradient)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
+                #if os(iOS)
+                ToolbarItem(placement: .topBarLeading) {
                     visibilityToggleButton
                 }
+                #else
+                ToolbarItem(placement: .primaryAction) {
+                    visibilityToggleButton
+                }
+                #endif
             }
             .onChange(of: nodeTree.rootNodes.count) { _, _ in
                 checkForRestoredNodes()

@@ -41,9 +41,9 @@ public final class OnboardingStore {
     }
 
     @ObservationIgnored private let voiceInputStore: VoiceInputStore
-    @ObservationIgnored internal let settingsStore: VoiceProcessingSettingsStore
+    @ObservationIgnored internal let settingsStore: ProcessingSettingsStore
 
-    public init(voiceInputStore: VoiceInputStore, settingsStore: VoiceProcessingSettingsStore) {
+    public init(voiceInputStore: VoiceInputStore, settingsStore: ProcessingSettingsStore) {
         self.voiceInputStore = voiceInputStore
         self.settingsStore = settingsStore
     }

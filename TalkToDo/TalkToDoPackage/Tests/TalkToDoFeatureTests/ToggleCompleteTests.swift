@@ -9,6 +9,7 @@ final class ToggleCompleteTests: XCTestCase {
     var eventStore: EventStore!
     var nodeTree: NodeTree!
 
+    @MainActor
     override func setUp() async throws {
         let container = try ModelContainer(
             for: NodeEvent.self,

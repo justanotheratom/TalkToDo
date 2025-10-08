@@ -4,7 +4,7 @@ import TalkToDoShared
 @available(iOS 18.0, macOS 15.0, *)
 public struct OnDeviceSettingsView: View {
     @Environment(\.dismiss) private var dismiss
-    @Bindable private var settingsStore: VoiceProcessingSettingsStore
+    @Bindable private var settingsStore: ProcessingSettingsStore
 
     @State private var selectedModelSlug = ModelCatalog.defaultModel.slug
     @State private var downloadStates: [String: DownloadState] = [:]
@@ -13,7 +13,7 @@ public struct OnDeviceSettingsView: View {
     @State private var isDownloading = false
     @State private var currentDownloadTask: Task<Void, Never>?
 
-    public init(settingsStore: VoiceProcessingSettingsStore) {
+    public init(settingsStore: ProcessingSettingsStore) {
         self._settingsStore = Bindable(settingsStore)
     }
 

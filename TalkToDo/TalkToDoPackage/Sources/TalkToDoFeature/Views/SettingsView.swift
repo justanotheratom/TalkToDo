@@ -8,9 +8,9 @@ public struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var fontPreference: FontPreference
 
-    @Bindable private var settingsStore: VoiceProcessingSettingsStore
+    @Bindable private var settingsStore: ProcessingSettingsStore
 
-    public init(settingsStore: VoiceProcessingSettingsStore) {
+    public init(settingsStore: ProcessingSettingsStore) {
         self._settingsStore = Bindable(settingsStore)
     }
 
@@ -81,5 +81,5 @@ public enum DownloadState: Equatable {
 }
 
 #Preview {
-    SettingsView(settingsStore: VoiceProcessingSettingsStore())
+    SettingsView(settingsStore: ProcessingSettingsStore())
 }

@@ -13,6 +13,8 @@ public struct NodeDetailView: View {
     let onLongPress: (Node) -> Void
     let onDelete: (String) -> Void
     let onEdit: (String) -> Void
+    
+    @State private var navigateToDetail = false
 
     public init(
         parentNode: Node,
@@ -61,9 +63,20 @@ public struct NodeDetailView: View {
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
-        .background(Color(.systemGroupedBackground))
+        .background {
+            #if os(iOS)
+            Color(.systemGroupedBackground)
+            #else
+            Color(NSColor.windowBackgroundColor)
+            #endif
+        }
         .navigationTitle(parentNode.title)
+        #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
+        #endif
+        .navigationDestination(isPresented: $navigateToDetail) {
+            destinationView
+        }
     }
 
     private var visibleChildren: [Node] {
@@ -74,6 +87,21 @@ public struct NodeDetailView: View {
         }
 
         return filtered.filter { !$0.isDeleted }  // Filter out deleted nodes
+    }
+    
+    private var destinationView: some View {
+        NodeDetailView(
+            parentNode: parentNode,
+            nodeTree: nodeTree,
+            showCompleted: showCompleted,
+            highlightedNodes: highlightedNodes,
+            recordingNodeId: recordingNodeId,
+            onCheckboxToggle: onCheckboxToggle,
+            onToggleCollapse: onToggleCollapse,
+            onLongPress: onLongPress,
+            onDelete: onDelete,
+            onEdit: onEdit
+        )
     }
 }
 
@@ -126,9 +154,6 @@ struct NodeTreeRow: View {
                     onDelete: { onDelete(node.id) },
                     onEdit: { onEdit(node.id) }
                 )
-                .navigationDestination(isPresented: $navigateToDetail) {
-                    destinationView
-                }
 
                 // Inline children (if expanded)
                 if !node.isCollapsed {
