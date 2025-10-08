@@ -31,7 +31,7 @@ public struct GeminiTextPipeline: TextProcessingPipeline {
 
         do {
             let response = try await client.submitTask(
-                audioURL: nil,
+                audio: nil,
                 transcript: trimmed,
                 localeIdentifier: Locale.current.identifier,
                 eventLog: context.eventLog,

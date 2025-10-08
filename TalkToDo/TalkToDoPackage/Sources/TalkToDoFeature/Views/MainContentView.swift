@@ -23,6 +23,7 @@ public struct MainContentView: View {
     @State private var selectedNodeContext: NodeContext?
     @State private var showSettings = false
     @State private var nodeListStore = NodeListStore()
+    @State private var hasInitialized = false
 
     public init() {}
 
@@ -41,6 +42,8 @@ public struct MainContentView: View {
         .environment(\.eventStore, eventStore)
         .environment(\.undoManager, undoManager)
         .task {
+            guard !hasInitialized else { return }
+            hasInitialized = true
             await initializeApp()
         }
         .onChange(of: changeTracker.highlightedNodes) { _, newHighlights in

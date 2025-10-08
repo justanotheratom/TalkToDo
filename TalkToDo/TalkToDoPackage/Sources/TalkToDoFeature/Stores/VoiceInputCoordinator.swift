@@ -48,18 +48,13 @@ public final class VoiceInputCoordinator {
         metadata: RecordingMetadata,
         nodeContext: NodeContext? = nil
     ) async {
+        let invocationID = UUID().uuidString
         let transcriptPreview = metadata.transcript ?? ""
-        let audioURL = metadata.audioURL
-        defer {
-            if let audioURL,
-               FileManager.default.fileExists(atPath: audioURL.path) {
-                try? FileManager.default.removeItem(at: audioURL)
-            }
-        }
 
         AppLogger.ui().log(event: "voiceCoordinator:processTranscriptStarted", data: [
             "transcriptLength": transcriptPreview.count,
-            "hasNodeContext": nodeContext != nil
+            "hasNodeContext": nodeContext != nil,
+            "invocationId": invocationID
         ])
 
         isProcessing = true
@@ -68,7 +63,8 @@ public final class VoiceInputCoordinator {
 
         do {
             AppLogger.ui().log(event: "voiceCoordinator:callingPipeline", data: [
-                "mode": currentMode.rawValue
+                "mode": currentMode.rawValue,
+                "invocationId": invocationID
             ])
             let context = makeProcessingContext(nodeContext: nodeContext)
             let result = try await pipeline.process(
@@ -76,16 +72,19 @@ public final class VoiceInputCoordinator {
                 context: context
             )
             AppLogger.ui().log(event: "voiceCoordinator:pipelineReturned", data: [
-                "operationCount": result.operations.count
+                "operationCount": result.operations.count,
+                "invocationId": invocationID
             ])
 
             AppLogger.ui().log(event: "voiceCoordinator:executingOperations", data: [
-                "operationCount": result.operations.count
+                "operationCount": result.operations.count,
+                "invocationId": invocationID
             ])
             let summary = try operationExecutor.execute(operations: result.operations)
             AppLogger.ui().log(event: "voiceCoordinator:operationsApplied", data: [
                 "eventCount": summary.eventCount,
-                "batchId": summary.batchId
+                "batchId": summary.batchId,
+                "invocationId": invocationID
             ])
 
             // Track changes for visual feedback
@@ -114,15 +113,19 @@ public final class VoiceInputCoordinator {
             AppLogger.ui().log(event: "voiceCoordinator:processSuccess", data: [
                 "operationCount": result.operations.count,
                 "batchId": summary.batchId,
-                "mode": currentMode.rawValue
+                "mode": currentMode.rawValue,
+                "invocationId": invocationID
             ])
         } catch {
             isProcessing = false
             processingError = error.localizedDescription
             AppLogger.ui().log(event: "voiceCoordinator:processFailedMode", data: [
-                "mode": currentMode.rawValue
+                "mode": currentMode.rawValue,
+                "invocationId": invocationID
             ])
-            AppLogger.ui().logError(event: "voiceCoordinator:processFailed", error: error)
+            AppLogger.ui().logError(event: "voiceCoordinator:processFailed", error: error, data: [
+                "invocationId": invocationID
+            ])
 
             Task {
                 try? await Task.sleep(for: .seconds(3))

@@ -6,13 +6,11 @@ import TalkToDoShared
 @available(iOS 18.0, macOS 15.0, *)
 public struct SpeechRecognitionResult: Sendable {
     public let transcript: String?
-    public let audioURL: URL?
     public let duration: TimeInterval
     public let sampleRate: Double?
 
-    public init(transcript: String?, audioURL: URL?, duration: TimeInterval, sampleRate: Double?) {
+    public init(transcript: String?, duration: TimeInterval, sampleRate: Double?) {
         self.transcript = transcript
-        self.audioURL = audioURL
         self.duration = duration
         self.sampleRate = sampleRate
     }
@@ -194,7 +192,7 @@ public actor SpeechRecognitionService {
         recognitionRequest?.append(buffer)
     }
 
-    func stop(audioURL: URL?, duration: TimeInterval, sampleRate: Double?) async throws -> SpeechRecognitionResult {
+    func stop(duration: TimeInterval, sampleRate: Double?) async throws -> SpeechRecognitionResult {
         let logger = AppLogger.speech()
         logger.log(event: "speech:stopRequested", data: [
             "state": String(describing: state)
@@ -241,12 +239,10 @@ public actor SpeechRecognitionService {
         await cleanup()
         logger.log(event: "speech:stopCompleted", data: [
             "durationMs": Int(sanitizedDuration * 1000),
-            "hasTranscript": result != nil,
-            "hasAudio": audioURL != nil
+            "hasTranscript": result != nil
         ])
         return SpeechRecognitionResult(
             transcript: result,
-            audioURL: audioURL,
             duration: sanitizedDuration,
             sampleRate: sampleRate
         )

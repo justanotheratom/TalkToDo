@@ -333,7 +333,6 @@ public final class VoiceInputStore {
 
             let recognitionResult = try await withTimeout(seconds: 10) { [speechService] in
                 try await speechService.stop(
-                    audioURL: captureResult.audioURL,
                     duration: captureResult.duration,
                     sampleRate: captureResult.sampleRate
                 )
@@ -383,14 +382,16 @@ public final class VoiceInputStore {
                 let localeId = recordingLocaleIdentifier ?? Locale.current.identifier
                 let metadata = RecordingMetadata(
                     transcript: cleaned,
-                    audioURL: recognitionResult.audioURL,
+                    audioURL: nil,
+                    audioData: captureResult.audioData,
                     duration: recognitionResult.duration,
                     sampleRate: recognitionResult.sampleRate,
+                    audioFormat: captureResult.audioFormat,
                     localeIdentifier: localeId
                 )
 
                 AppLogger.speech().log(event: "voice:callingCompletion", data: [
-                    "hasAudio": metadata.audioURL != nil
+                    "hasAudio": metadata.audioData != nil
                 ])
                 finalHandler(metadata)
                 AppLogger.speech().log(event: "voice:completionInvoked", data: [:])

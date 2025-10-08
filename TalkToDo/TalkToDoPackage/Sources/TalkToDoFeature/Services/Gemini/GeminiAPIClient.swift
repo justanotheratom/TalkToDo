@@ -3,13 +3,23 @@ import TalkToDoShared
 
 public protocol GeminiClientProtocol: Sendable {
     func submitTask(
-        audioURL: URL?,
+        audio: GeminiAudioPayload?,
         transcript: String?,
         localeIdentifier: String?,
         eventLog: [EventLogEntry],
         nodeSnapshot: [SnapshotNode],
         nodeContext: NodeContext?
     ) async throws -> GeminiStructuredResponse
+}
+
+public struct GeminiAudioPayload: Sendable {
+    public let data: Data
+    public let format: String
+
+    public init(data: Data, format: String) {
+        self.data = data
+        self.format = format
+    }
 }
 
 public struct GeminiAPIClient: GeminiClientProtocol {
@@ -25,7 +35,7 @@ public struct GeminiAPIClient: GeminiClientProtocol {
 
     public enum ClientError: Error, LocalizedError, Equatable {
         case missingAPIKey
-        case missingAudioFile
+        case missingAudioData
         case serializationFailed
         case invalidResponse
         case httpError(code: Int, message: String?)
@@ -36,8 +46,8 @@ public struct GeminiAPIClient: GeminiClientProtocol {
             switch self {
             case .missingAPIKey:
                 return "Gemini API key is missing."
-            case .missingAudioFile:
-                return "No audio file was provided for Gemini processing."
+            case .missingAudioData:
+                return "No audio data was provided for Gemini processing."
             case .serializationFailed:
                 return "Failed to serialize request payload for Gemini."
             case .invalidResponse:
@@ -65,7 +75,7 @@ public struct GeminiAPIClient: GeminiClientProtocol {
     }
 
     public func submitTask(
-        audioURL: URL?,
+        audio: GeminiAudioPayload?,
         transcript: String?,
         localeIdentifier: String?,
         eventLog: [EventLogEntry],
@@ -75,6 +85,8 @@ public struct GeminiAPIClient: GeminiClientProtocol {
         guard !configuration.apiKey.isEmpty else {
             throw ClientError.missingAPIKey
         }
+
+        let requestId = UUID().uuidString
 
         var userContent: [[String: Any]] = []
 
@@ -112,19 +124,17 @@ public struct GeminiAPIClient: GeminiClientProtocol {
             ])
         }
 
-        if let audioURL {
-            guard FileManager.default.fileExists(atPath: audioURL.path) else {
-                throw ClientError.missingAudioFile
+        if let audio {
+            guard !audio.data.isEmpty else {
+                throw ClientError.missingAudioData
             }
 
-            let audioData = try Data(contentsOf: audioURL)
-            let base64Audio = audioData.base64EncodedString()
-            let audioFormat = audioURL.pathExtension.lowercased().isEmpty ? "wav" : audioURL.pathExtension.lowercased()
+            let base64Audio = audio.data.base64EncodedString()
 
             userContent.append([
                 "type": "input_audio",
                 "input_audio": [
-                    "format": audioFormat,
+                    "format": audio.format,
                     "data": base64Audio
                 ]
             ])
@@ -222,9 +232,10 @@ public struct GeminiAPIClient: GeminiClientProtocol {
         let requestStartTime = Date()
         let requestSizeBytes = httpBody.count
         AppLogger.llm().log(event: "gemini:requestStart", data: [
+            "requestId": requestId,
             "requestSizeBytes": requestSizeBytes,
             "hasNodeContext": nodeContext != nil,
-            "hasAudio": audioURL != nil,
+            "hasAudio": audio != nil,
             "eventLogCount": eventLog.count,
             "snapshotCount": nodeSnapshot.count
         ])
@@ -248,7 +259,8 @@ public struct GeminiAPIClient: GeminiClientProtocol {
             let message = String(data: data, encoding: .utf8)
             AppLogger.llm().log(event: "gemini:requestFailed", data: [
                 "statusCode": httpResponse.statusCode,
-                "latencyMs": networkLatencyMs
+                "latencyMs": networkLatencyMs,
+                "requestId": requestId
             ])
             throw ClientError.httpError(code: httpResponse.statusCode, message: message)
         }
@@ -274,12 +286,14 @@ public struct GeminiAPIClient: GeminiClientProtocol {
 
         // Log full LLM response for debugging
         AppLogger.llm().log(event: "gemini:llmResponse", data: [
+            "requestId": requestId,
             "rawResponse": contentText,
             "extractedJSON": jsonFragment,
             "operationCount": plan.operations.count
         ])
 
         AppLogger.llm().log(event: "gemini:requestSuccess", data: [
+            "requestId": requestId,
             "totalLatencyMs": totalLatencyMs,
             "networkLatencyMs": networkLatencyMs,
             "requestSizeBytes": requestSizeBytes,

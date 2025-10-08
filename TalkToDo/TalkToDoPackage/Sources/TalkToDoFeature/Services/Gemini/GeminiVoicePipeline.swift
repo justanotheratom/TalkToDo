@@ -25,7 +25,10 @@ public struct GeminiVoicePipeline: VoiceProcessingPipeline {
     ) async throws -> OperationGenerationResult {
         do {
             let response = try await client.submitTask(
-                audioURL: metadata.audioURL,
+                audio: metadata.audioData.flatMap { data in
+                    let format = metadata.audioFormat ?? "wav"
+                    return GeminiAudioPayload(data: data, format: format)
+                },
                 transcript: metadata.transcript,
                 localeIdentifier: metadata.localeIdentifier,
                 eventLog: context.eventLog,

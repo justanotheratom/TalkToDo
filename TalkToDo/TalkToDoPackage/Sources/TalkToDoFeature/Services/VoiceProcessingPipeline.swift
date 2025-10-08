@@ -4,21 +4,27 @@ import TalkToDoShared
 public struct RecordingMetadata: Sendable {
     public let transcript: String?
     public let audioURL: URL?
+    public let audioData: Data?
     public let duration: TimeInterval
     public let sampleRate: Double?
+    public let audioFormat: String?
     public let localeIdentifier: String?
 
     public init(
         transcript: String?,
         audioURL: URL?,
+        audioData: Data? = nil,
         duration: TimeInterval,
         sampleRate: Double?,
+        audioFormat: String? = nil,
         localeIdentifier: String?
     ) {
         self.transcript = transcript
         self.audioURL = audioURL
+        self.audioData = audioData
         self.duration = duration
         self.sampleRate = sampleRate
+        self.audioFormat = audioFormat
         self.localeIdentifier = localeIdentifier
     }
 
@@ -26,8 +32,10 @@ public struct RecordingMetadata: Sendable {
         RecordingMetadata(
             transcript: nil,
             audioURL: nil,
+            audioData: nil,
             duration: 0,
             sampleRate: nil,
+            audioFormat: nil,
             localeIdentifier: nil
         )
     }
