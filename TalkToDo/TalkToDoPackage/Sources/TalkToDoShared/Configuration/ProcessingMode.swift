@@ -53,7 +53,7 @@ public final class VoiceProcessingSettingsStore {
            let parsed = ProcessingMode(rawValue: stored) {
             mode = parsed
         } else {
-            mode = .onDevice
+            mode = .remoteGemini
         }
 
         remoteAPIKey = defaults.string(forKey: DefaultsKey.geminiAPIKey)

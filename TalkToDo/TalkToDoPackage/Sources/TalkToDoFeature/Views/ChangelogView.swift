@@ -47,7 +47,7 @@ public struct ChangelogView: View {
                     #endif
                 }
             }
-            .navigationTitle("Changelog")
+            .navigationTitle("History")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif

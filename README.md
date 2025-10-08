@@ -1,14 +1,14 @@
 # TalkToDo
 
-> **Voice-first hierarchical todo app powered by on-device AI**
+> **Voice-first hierarchical todo app powered by AI**
 
-Hold the mic, speak naturally, and watch your thoughts transform into structured, hierarchical lists — all processed offline with zero cloud dependency.
+Hold the mic, speak naturally, and watch your thoughts transform into structured, hierarchical lists.
 
 ## Features
 
 - **Natural Voice Input**: Speak like a human, see structure like an outliner
-- **On-Device AI**: LFM2 models (700M on iOS, 1.2B on macOS) via Leap SDK
-- **Offline-First**: Speech recognition, LLM inference, and sync all happen locally
+- **AI-Powered**: Uses Gemini 2.5 Flash Lite for intelligent voice processing
+- **Flexible Processing**: Choose between remote AI or local on-device models
 - **Event Sourcing**: Append-only log with in-memory snapshot for instant UI updates
 - **CloudKit Sync**: Seamless cross-device sync via CloudKit Private Database
 - **Batch Undo**: Simple undo via batch deletion and snapshot rebuild
@@ -50,18 +50,19 @@ open TalkToDo.xcodeproj
 - **iOS**: Select an iOS device or simulator and press Cmd+R
 - **macOS**: Select "My Mac" and press Cmd+R
 
-### 5. (Optional) Configure Gemini Remote Processing
+### 5. Configure Gemini API (Recommended)
 
-1. Visit [Google AI Studio](https://aistudio.google.com/app/apikey) (or the Gemini section of Google Cloud) and create an API key for the Gemini 2.5 Flash Lite model.
-2. Copy the generated key and keep it private.
-3. Export the key in your shell before running the app or tests:
+1. Visit [Google AI Studio](https://aistudio.google.com/app/apikey) and create a free API key for Gemini 2.5 Flash Lite.
+2. During first launch, TalkToDo will prompt you to paste your API key.
+3. Alternatively, export the key in your shell before running:
 
    ```bash
    export GEMINI_API_KEY="your-gemini-key"
    ```
 
-   Alternatively, add `GEMINI_API_KEY` to your Xcode scheme's Run action environment variables.
-4. Launch TalkToDo and enable "Remote (Gemini)" in Settings to route voice processing through the remote pipeline. Without a key, the app automatically falls back to on-device processing.
+   Or add `GEMINI_API_KEY` to your Xcode scheme's Run action environment variables.
+
+**Note:** You can also use on-device processing by selecting "Skip - Use On-Device Mode" during onboarding. This requires downloading a 1.2GB LLM model.
 
 ## Architecture
 
@@ -72,17 +73,18 @@ open TalkToDo.xcodeproj
 - **EventStore**: Manages persistence and coordinates snapshot updates
 - **UndoManager**: Groups events by batchId for simple undo
 
-### LLM Integration
+### Voice Processing
 
-- **LLMInferenceService**: Loads LFM2 models and generates structured JSON operations
+- **Dual Pipeline**: Supports both remote (Gemini) and on-device (LFM2) processing
+- **Speech Recognition**: Real-time transcription via Apple's Speech framework
 - **System Prompts**: Context-aware prompts for global vs node-level commands
 - **16-bit Hex IDs**: 4-character node IDs (e.g., "a3f2") for LLM efficiency
 
-### Voice Input
+### Voice Input Flow
 
-- **SpeechRecognitionService**: On-device ASR via Apple's Speech framework
 - **VoiceInputStore**: Manages recording state and permissions
-- **VoiceInputCoordinator**: Orchestrates voice → transcript → LLM → events flow
+- **VoiceInputCoordinator**: Orchestrates voice → transcript → AI → events flow
+- **Pipeline Factory**: Creates appropriate processing pipeline based on settings
 
 ### UI Components
 
@@ -203,8 +205,9 @@ MIT License - see LICENSE file for details
 
 ## Acknowledgments
 
-- **Leap SDK** by [Liquid AI](https://liquid.ai) for on-device LLM inference
-- **Apple Speech Framework** for privacy-first speech recognition
+- **Google Gemini** for powerful voice-to-structure AI processing
+- **Leap SDK** by [Liquid AI](https://liquid.ai) for optional on-device LLM inference
+- **Apple Speech Framework** for real-time speech recognition
 - Built with inspiration from the voice-to-structure interaction category
 
 ---

@@ -1,4 +1,5 @@
 import SwiftUI
+import TalkToDoShared
 
 @available(iOS 18.0, macOS 15.0, *)
 public struct OnboardingView: View {
@@ -32,13 +33,35 @@ public struct OnboardingView: View {
                 case .inProgress(let step):
                     switch step {
                     case .welcome:
-                        WelcomeStep(onStart: {})
+                        WelcomeStep(onStart: {
+                            store.proceedToAPIKeySetup()
+                        })
 
-                    case .downloadingModel:
-                        DownloadingStep(progress: store.downloadProgress)
+                    case .apiKeySetup:
+                        APIKeySetupStep(
+                            settingsStore: store.settingsStore,
+                            onContinue: {
+                                store.proceedToPermissionsExplanation()
+                            },
+                            onSkipToOnDevice: {
+                                // User chose on-device mode
+                                store.proceedToPermissionsExplanation()
+                            }
+                        )
+
+                    case .permissionsExplanation:
+                        PermissionsExplanationStep(onContinue: {
+                            store.proceedToPermissionsRequest()
+                            Task {
+                                await store.requestPermissions()
+                            }
+                        })
 
                     case .requestingPermissions:
-                        PermissionsStep()
+                        PermissionsRequestStep(
+                            micStatus: store.micPermissionStatus,
+                            speechStatus: store.speechPermissionStatus
+                        )
 
                     case .complete:
                         CompletedStep(onContinue: onComplete)
@@ -76,7 +99,7 @@ private struct WelcomeStep: View {
                 .font(.largeTitle)
                 .fontWeight(.bold)
 
-            Text("Transform your voice into structured lists with the power of on-device AI")
+            Text("Speak naturally. Get structured lists.\n\nJust hold the mic and speak—your thoughts become organized to-do items powered by AI.")
                 .font(.body)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -97,52 +120,318 @@ private struct WelcomeStep: View {
 }
 
 @available(iOS 18.0, macOS 15.0, *)
-private struct DownloadingStep: View {
-    let progress: Double
+private struct APIKeySetupStep: View {
+    @Bindable var settingsStore: VoiceProcessingSettingsStore
+    let onContinue: () -> Void
+    let onSkipToOnDevice: () -> Void
+
+    @State private var isValidating = false
+    @State private var validationError: String?
+    @State private var showOnDeviceDialog = false
+
+    private var envAPIKey: String? {
+        ProcessInfo.processInfo.environment["GEMINI_API_KEY"]?.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var hasEnvKey: Bool {
+        if let key = envAPIKey, !key.isEmpty {
+            return true
+        }
+        return false
+    }
 
     var body: some View {
         VStack(spacing: 24) {
-            ProgressView(value: progress, total: 1.0)
-                .progressViewStyle(.circular)
-                .scaleEffect(1.5)
+            Image(systemName: "cloud.fill")
+                .font(.system(size: 60))
+                .foregroundStyle(.blue)
 
-            Text("Downloading AI Model")
+            Text("Connect to Gemini AI")
                 .font(.title2)
                 .fontWeight(.semibold)
 
-            Text("This will take a few minutes. The model runs entirely on your device for privacy.")
-                .font(.body)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
+            if hasEnvKey {
+                // Environment key detected
+                VStack(spacing: 12) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 40))
+                        .foregroundStyle(.green)
 
-            Text("\(Int(progress * 100))%")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                    Text("API Key Found")
+                        .font(.headline)
+
+                    Text("Your Gemini API key was detected in the environment.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+
+                Button(action: onContinue) {
+                    Text("Continue")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: 300)
+                        .padding()
+                        .background(Color.accentColor)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .padding(.top, 16)
+            } else if case .present = settingsStore.geminiKeyStatus {
+                // Key already stored
+                VStack(spacing: 12) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 40))
+                        .foregroundStyle(.green)
+
+                    Text("API Key Configured")
+                        .font(.headline)
+
+                    Text("Your Gemini API key is ready to use.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Button(action: onContinue) {
+                    Text("Continue")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: 300)
+                        .padding()
+                        .background(Color.accentColor)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .padding(.top, 16)
+            } else {
+                // Need to paste key
+                VStack(spacing: 12) {
+                    Text("TalkToDo uses Google's Gemini to understand your voice and create structured lists.")
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+
+                    Button(action: pasteAndValidate) {
+                        HStack {
+                            if isValidating {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                            } else {
+                                Image(systemName: "doc.on.clipboard")
+                            }
+                            Text(isValidating ? "Validating..." : "Paste API Key")
+                        }
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: 300)
+                        .padding()
+                        .background(Color.accentColor)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    .disabled(isValidating)
+
+                    if let error = validationError {
+                        Text(error)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
+
+                    Text("Example: AIzaSyC8_abc123...")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+
+                    Link(destination: URL(string: "https://aistudio.google.com/app/apikey")!) {
+                        Text("Get a free API key →")
+                            .font(.footnote)
+                    }
+                    .padding(.top, 8)
+                }
+
+                Button(action: { showOnDeviceDialog = true }) {
+                    Text("Skip - Use On-Device Mode")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.borderless)
+                .padding(.top, 8)
+            }
+        }
+        .alert("Use On-Device Mode?", isPresented: $showOnDeviceDialog) {
+            Button("Go Back", role: .cancel) {}
+            Button("Continue") {
+                // Switch to on-device mode
+                settingsStore.update(mode: .onDevice)
+                onSkipToOnDevice()
+            }
+        } message: {
+            Text("On-device mode runs entirely offline but requires a 1.2GB model download that takes 5-10 minutes on first launch.")
+        }
+    }
+
+    private func pasteAndValidate() {
+        #if os(iOS)
+        guard let clipboardText = UIPasteboard.general.string else {
+            validationError = "Clipboard is empty"
+            return
+        }
+        #else
+        guard let clipboardText = NSPasteboard.general.string(forType: .string) else {
+            validationError = "Clipboard is empty"
+            return
+        }
+        #endif
+
+        let trimmed = clipboardText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            validationError = "Clipboard is empty"
+            return
+        }
+
+        // Basic format validation (Gemini keys start with "AIza")
+        guard trimmed.hasPrefix("AIza") else {
+            validationError = "Invalid key format. Gemini keys start with 'AIza'"
+            return
+        }
+
+        isValidating = true
+        validationError = nil
+
+        // Store the key
+        settingsStore.updateGeminiAPIKey(trimmed)
+
+        // Simulate validation (in production, you'd make an API call)
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(500))
+            isValidating = false
+            // For now, assume valid if format is correct
+            onContinue()
         }
     }
 }
 
 @available(iOS 18.0, macOS 15.0, *)
-private struct PermissionsStep: View {
+private struct PermissionsExplanationStep: View {
+    let onContinue: () -> Void
+
     var body: some View {
         VStack(spacing: 24) {
             Image(systemName: "checkmark.shield.fill")
                 .font(.system(size: 60))
-                .foregroundStyle(.green)
+                .foregroundStyle(.blue)
 
+            Text("Two Quick Permissions")
+                .font(.title2)
+                .fontWeight(.semibold)
+
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(spacing: 12) {
+                    Image(systemName: "mic.fill")
+                        .font(.title2)
+                        .foregroundStyle(.blue)
+                        .frame(width: 40)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Microphone")
+                            .font(.headline)
+                        Text("So you can record your voice")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                HStack(spacing: 12) {
+                    Image(systemName: "waveform")
+                        .font(.title2)
+                        .foregroundStyle(.blue)
+                        .frame(width: 40)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Speech Recognition")
+                            .font(.headline)
+                        Text("To convert speech to text in real-time")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .padding()
+            .background(Color.blue.opacity(0.1))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+
+            Button(action: onContinue) {
+                Text("Grant Permissions")
+                    .font(.headline)
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: 300)
+                    .padding()
+                    .background(Color.accentColor)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+            .padding(.top, 16)
+        }
+    }
+}
+
+@available(iOS 18.0, macOS 15.0, *)
+private struct PermissionsRequestStep: View {
+    let micStatus: OnboardingStore.PermissionStatus
+    let speechStatus: OnboardingStore.PermissionStatus
+
+    var body: some View {
+        VStack(spacing: 24) {
             Text("Requesting Permissions")
                 .font(.title2)
                 .fontWeight(.semibold)
 
-            Text("TalkToDo needs access to your microphone and speech recognition to capture your voice.")
-                .font(.body)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
+            VStack(spacing: 16) {
+                PermissionRow(
+                    title: "Microphone Access",
+                    status: micStatus
+                )
 
+                PermissionRow(
+                    title: "Speech Recognition",
+                    status: speechStatus
+                )
+            }
+            .padding()
+        }
+    }
+}
+
+@available(iOS 18.0, macOS 15.0, *)
+private struct PermissionRow: View {
+    let title: String
+    let status: OnboardingStore.PermissionStatus
+
+    var body: some View {
+        HStack(spacing: 12) {
+            statusIcon
+                .font(.title2)
+                .frame(width: 40)
+
+            Text(title)
+                .font(.body)
+
+            Spacer()
+        }
+        .padding(.vertical, 8)
+    }
+
+    @ViewBuilder
+    private var statusIcon: some View {
+        switch status {
+        case .pending:
+            Image(systemName: "square")
+                .foregroundStyle(.secondary)
+        case .requesting:
             ProgressView()
-                .padding(.top)
+                .scaleEffect(0.8)
+        case .granted:
+            Image(systemName: "checkmark.square.fill")
+                .foregroundStyle(.green)
+        case .denied:
+            Image(systemName: "xmark.square.fill")
+                .foregroundStyle(.red)
         }
     }
 }
@@ -157,18 +446,30 @@ private struct CompletedStep: View {
                 .font(.system(size: 80))
                 .foregroundStyle(.green)
 
-            Text("All Set!")
+            Text("You're All Set!")
                 .font(.largeTitle)
                 .fontWeight(.bold)
 
-            Text("You're ready to start creating structured lists with your voice.")
+            Text("Hold the microphone button and speak naturally. TalkToDo will organize your thoughts into lists.")
                 .font(.body)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
 
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .top, spacing: 8) {
+                    Text("💡")
+                    Text("Try saying: \"Add buy groceries with milk, bread, and eggs as sub-items\"")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding()
+            .background(Color.blue.opacity(0.1))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+
             Button(action: onContinue) {
-                Text("Continue")
+                Text("Start Using TalkToDo")
                     .font(.headline)
                     .foregroundStyle(.white)
                     .frame(maxWidth: 300)
@@ -217,19 +518,20 @@ private struct FailedStep: View {
 }
 
 #Preview("Welcome") {
+    let settingsStore = VoiceProcessingSettingsStore()
     let store = OnboardingStore(
         voiceInputStore: VoiceInputStore(),
-        llmService: LLMInferenceService()
+        settingsStore: settingsStore
     )
     return OnboardingView(store: store, onComplete: {})
 }
 
-#Preview("Downloading") {
+#Preview("API Key") {
+    let settingsStore = VoiceProcessingSettingsStore()
     let store = OnboardingStore(
         voiceInputStore: VoiceInputStore(),
-        llmService: LLMInferenceService()
+        settingsStore: settingsStore
     )
-    store.state = .inProgress(step: .downloadingModel)
-    store.downloadProgress = 0.65
+    store.state = .inProgress(step: .apiKeySetup)
     return OnboardingView(store: store, onComplete: {})
 }

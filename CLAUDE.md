@@ -4,15 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-TalkToDo is a voice-first hierarchical todo app powered by on-device AI. Users hold a microphone button, speak naturally, and watch their thoughts transform into structured hierarchical lists—all processed offline with zero cloud dependency.
+TalkToDo is a voice-first hierarchical todo app powered by AI. Users hold a microphone button, speak naturally, and watch their thoughts transform into structured hierarchical lists.
 
 **Key Technologies:**
 - Swift 6.0+ with SwiftUI
 - SwiftData for persistence
 - CloudKit Private Database for cross-device sync
-- Leap SDK for on-device LLM inference (LFM2 models: 700M/1.2B)
-- Apple Speech framework for on-device ASR
-- Optional Gemini API for remote processing
+- Gemini 2.5 Flash Lite for remote AI processing (default)
+- Apple Speech framework for real-time transcription
+- Optional Leap SDK for on-device LLM inference (LFM2 models: 700M/1.2B)
 
 ## Build Commands
 
@@ -47,11 +47,11 @@ tuist generate
 ```
 
 ### Environment Variables
-For testing remote Gemini pipelines locally:
+For Gemini API access (recommended):
 ```bash
 export GEMINI_API_KEY="your-gemini-key"
 ```
-Without this key, remote mode automatically falls back to on-device processing.
+The app will use this key automatically if found in the environment. Otherwise, you'll be prompted to paste an API key during first launch.
 
 ## Architecture
 
@@ -94,19 +94,20 @@ TalkToDo uses event sourcing as its core data architecture:
 
 ### Voice Processing Pipelines
 
-TalkToDo supports two processing modes (toggled in Settings):
+TalkToDo supports two processing modes:
 
-1. **On-Device Pipeline** (`OnDeviceVoicePipeline`):
+1. **Remote Pipeline** (`GeminiVoicePipeline`) - **Default**:
+   - Uses recorded audio file + live transcript from Apple ASR
+   - `GeminiAPIClient`: Uploads audio to Gemini's OpenAI-compatible endpoint
+   - Gemini performs both transcription and operation generation
+   - Requires valid `GEMINI_API_KEY` (provided during onboarding or via environment)
+
+2. **On-Device Pipeline** (`OnDeviceVoicePipeline`) - **Optional**:
    - `SpeechRecognitionService`: Apple ASR for live transcript
    - `AudioCaptureService`: Records audio to disk
    - `LLMInferenceService`: Loads LFM2 model via Leap SDK, generates structured JSON operations
    - Flow: Audio → Transcript → LLM → Operations → Events
-
-2. **Remote Pipeline** (`GeminiVoicePipeline`):
-   - Uses recorded audio file + live transcript from Apple ASR
-   - `GeminiAPIClient`: Uploads audio to Gemini's OpenAI-compatible endpoint
-   - Gemini performs both transcription and operation generation
-   - Falls back to on-device if `GEMINI_API_KEY` is missing or invalid
+   - Requires downloading 700M-1.2GB model on first use
 
 **Pipeline Factory** (`VoiceProcessingPipelineFactory`): Creates appropriate pipeline based on current mode.
 
@@ -190,34 +191,36 @@ let pipeline = VoiceProcessingPipelineFactory.createPipeline(
 
 ## Voice Processing Notes
 
-- **Live Transcription**: On-device ASR provides real-time transcript during recording
-- **Final Processing**: When user releases mic, either on-device LLM or Gemini processes the complete input
+- **Live Transcription**: Apple ASR provides real-time transcript during recording
+- **Final Processing**: When user releases mic, audio is processed by Gemini (default) or on-device LLM
 - **Audio Recording**: `.caf` format saved to temporary directory for remote processing
 - **Validation**: Recording must have minimum duration and non-empty transcript
 - **Permissions**: Requires both Speech Recognition and Microphone access
 
-## Testing Gemini Integration
+## Gemini API Setup
 
-1. Get API key from [Google AI Studio](https://aistudio.google.com/app/apikey)
-2. Export in shell: `export GEMINI_API_KEY="your-key"`
-3. Or add to Xcode scheme's Run environment variables
-4. Enable "Remote (Gemini)" in Settings
-5. Without key, app logs warning and falls back to on-device processing
+1. Get a free API key from [Google AI Studio](https://aistudio.google.com/app/apikey)
+2. During first launch, paste the key when prompted in the onboarding flow
+3. Alternatively, export in shell before running: `export GEMINI_API_KEY="your-key"`
+4. Or add to Xcode scheme's Run environment variables
+5. To switch to on-device mode, select it during onboarding or change in Settings > Advanced
 
 ## Common Gotchas
 
-- **Model Downloads**: First launch requires downloading LFM2 model (5-10 minutes)
+- **API Key Required**: Remote mode (default) requires a valid Gemini API key
+- **Model Downloads**: On-device mode requires downloading LFM2 model (5-10 minutes on first use)
 - **Permissions**: App needs both Speech Recognition and Microphone access
-- **Simulator vs Device**: LLM inference is slower on simulator
+- **Simulator vs Device**: On-device LLM inference is slower on simulator
 - **CloudKit Sync**: Requires signing into iCloud on all devices
 - **Bundle IDs**: Must be unique per developer to avoid signing conflicts
 
 ## Troubleshooting
 
-- "Model not found": Download default model in Settings
-- "Microphone access denied": Enable in System Settings → Privacy & Security → Microphone
-- CloudKit sync fails: Verify iCloud sign-in and matching container identifiers
-- Gemini fallback: Check `GEMINI_API_KEY` is set and valid
+- **"API key required"**: Paste a valid Gemini API key in Settings or during onboarding
+- **"Model not found"** (on-device mode): Download LFM2 model in Settings > Advanced > On-Device Processing
+- **"Microphone access denied"**: Enable in System Settings → Privacy & Security → Microphone
+- **CloudKit sync fails**: Verify iCloud sign-in and matching container identifiers
+- **Network errors**: Check internet connection for remote processing
 
 ## Additional Documentation
 

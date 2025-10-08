@@ -153,7 +153,7 @@ public struct MainContentView: View {
         // Initialize onboarding store
         onboardingStore = OnboardingStore(
             voiceInputStore: voiceInputStore,
-            llmService: llmService
+            settingsStore: processingSettings
         )
 
         // Initialize event store and undo manager

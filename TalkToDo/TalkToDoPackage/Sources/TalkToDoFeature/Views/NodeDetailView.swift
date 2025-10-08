@@ -126,12 +126,9 @@ struct NodeTreeRow: View {
                     onDelete: { onDelete(node.id) },
                     onEdit: { onEdit(node.id) }
                 )
-                .background(
-                    NavigationLink(destination: destinationView, isActive: $navigateToDetail) {
-                        EmptyView()
-                    }
-                    .opacity(0)
-                )
+                .navigationDestination(isPresented: $navigateToDetail) {
+                    destinationView
+                }
 
                 // Inline children (if expanded)
                 if !node.isCollapsed {
