@@ -51,7 +51,7 @@ public final class OnboardingStore {
     // MARK: - Onboarding Flow
 
     public func startOnboarding() async {
-        state = .inProgress(step: .welcome)
+        state = .inProgress(step: .apiKeySetup)
         AppLogger.ui().log(event: "onboarding:started", data: [:])
     }
 
