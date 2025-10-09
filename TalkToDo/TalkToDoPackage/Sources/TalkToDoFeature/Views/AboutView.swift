@@ -39,7 +39,7 @@ public struct AboutView: View {
 
             Section {
                 Link(destination: URL(string: "https://x.com/realsanketp")!) {
-                    Label("Twitter", systemImage: "link")
+                    Label("X", systemImage: "link")
                 }
 
                 Link(destination: URL(string: "https://github.com/justanotheratom")!) {
