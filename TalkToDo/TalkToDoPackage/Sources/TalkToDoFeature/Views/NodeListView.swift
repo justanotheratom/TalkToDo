@@ -12,6 +12,8 @@ public struct NodeListView: View {
     let onEdit: (String) -> Void
     let onCheckboxToggle: (String) -> Void
 
+    @State private var destinationNodeId: String?
+
     public init(
         nodeTree: NodeTree,
         store: NodeListStore,
@@ -45,16 +47,38 @@ public struct NodeListView: View {
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
             .background(backgroundGradient)
+#if os(iOS)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     visibilityToggleButton
                 }
             }
+#endif
             .onChange(of: nodeTree.rootNodes.count) { _, _ in
                 checkForRestoredNodes()
             }
             .onChange(of: nodeTree.rootNodes.map { $0.isCompleted }) { _, _ in
                 checkForRestoredNodes()
+            }
+            .navigationDestination(item: $destinationNodeId) { nodeId in
+                if let node = nodeTree.findNode(id: nodeId) {
+                    NodeDetailView(
+                        parentNode: node,
+                        nodeTree: nodeTree,
+                        showCompleted: store.showCompleted,
+                        highlightedNodes: store.highlightedNodes,
+                        recordingNodeId: store.recordingNodeId,
+                        selectedNodeId: store.selectedNodeId,
+                        onCheckboxToggle: handleCheckboxToggle,
+                        onToggleCollapse: onToggleCollapse,
+                        onLongPress: onLongPress,
+                        onLongPressRelease: onLongPressRelease,
+                        onDelete: onDelete,
+                        onEdit: onEdit
+                    )
+                } else {
+                    missingNodeFallback()
+                }
             }
     }
 
@@ -88,6 +112,7 @@ public struct NodeListView: View {
             recordingNodeId: store.recordingNodeId,
             selectedNodeId: store.selectedNodeId,
             nodeTree: nodeTree,
+            onNavigateToDetail: { destinationNodeId = $0.id },
             onCheckboxToggle: handleCheckboxToggle,
             onToggleCollapse: onToggleCollapse,
             onLongPress: onLongPress,
@@ -124,6 +149,20 @@ public struct NodeListView: View {
         return filtered
             .filter { !$0.isDeleted }  // Filter out deleted nodes
             .filter { !store.completedNodesToRemove.contains($0.id) }
+    }
+
+    @ViewBuilder
+    private func missingNodeFallback() -> some View {
+        VStack(spacing: 12) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 32))
+                .foregroundStyle(.secondary)
+            Text("That item is no longer available.")
+                .font(.headline)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding()
     }
 
     private func handleCheckboxToggle(_ nodeId: String) {

@@ -1,4 +1,10 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
+#if canImport(AppKit)
+import AppKit
+#endif
 
 @available(iOS 18.0, macOS 15.0, *)
 public struct NodeDetailView: View {
@@ -8,6 +14,8 @@ public struct NodeDetailView: View {
     let highlightedNodes: [String: HighlightType]
     let recordingNodeId: String?
     let selectedNodeId: String?
+
+    @State private var destinationNodeId: String?
 
     let onCheckboxToggle: (String) -> Void
     let onToggleCollapse: (String) -> Void
@@ -55,6 +63,7 @@ public struct NodeDetailView: View {
                     recordingNodeId: recordingNodeId,
                     selectedNodeId: selectedNodeId,
                     nodeTree: nodeTree,
+                    onNavigateToDetail: { destinationNodeId = $0.id },
                     onCheckboxToggle: onCheckboxToggle,
                     onToggleCollapse: onToggleCollapse,
                     onLongPress: onLongPress,
@@ -69,9 +78,54 @@ public struct NodeDetailView: View {
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
-        .background(Color(.systemGroupedBackground))
+        .background(groupedBackgroundColor)
         .navigationTitle(parentNode.title)
+#if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
+#endif
+        .navigationDestination(item: $destinationNodeId) { nodeId in
+            if let nextNode = nodeTree.findNode(id: nodeId) {
+                NodeDetailView(
+                    parentNode: nextNode,
+                    nodeTree: nodeTree,
+                    showCompleted: showCompleted,
+                    highlightedNodes: highlightedNodes,
+                    recordingNodeId: recordingNodeId,
+                    selectedNodeId: selectedNodeId,
+                    onCheckboxToggle: onCheckboxToggle,
+                    onToggleCollapse: onToggleCollapse,
+                    onLongPress: onLongPress,
+                    onLongPressRelease: onLongPressRelease,
+                    onDelete: onDelete,
+                    onEdit: onEdit
+                )
+            } else {
+                missingNodeFallback()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func missingNodeFallback() -> some View {
+        VStack(spacing: 12) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 32))
+                .foregroundStyle(.secondary)
+            Text("That item is no longer available.")
+                .font(.headline)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding()
+        .background(groupedBackgroundColor.ignoresSafeArea())
+    }
+
+    private var groupedBackgroundColor: Color {
+        #if os(iOS)
+        Color(uiColor: .systemGroupedBackground)
+        #else
+        Color(nsColor: .windowBackgroundColor)
+        #endif
     }
 
     private var visibleChildren: [Node] {
@@ -96,14 +150,13 @@ struct NodeTreeRow: View {
     let selectedNodeId: String?
     @Bindable var nodeTree: NodeTree
 
+    let onNavigateToDetail: (Node) -> Void
     let onCheckboxToggle: (String) -> Void
     let onToggleCollapse: (String) -> Void
     let onLongPress: (Node) -> Void
     let onLongPressRelease: () -> Void
     let onDelete: (String) -> Void
     let onEdit: (String) -> Void
-
-    @State private var navigateToDetail = false
 
     var body: some View {
         Group {
@@ -133,16 +186,13 @@ struct NodeTreeRow: View {
                     isContextSelected: selectedNodeId == node.id,
                     showChevron: true,
                     onCheckboxToggle: { onCheckboxToggle(node.id) },
-                    onNavigateInto: { navigateToDetail = true },
+                    onNavigateInto: { onNavigateToDetail(node) },
                     onTitleTap: { onToggleCollapse(node.id) },
                     onLongPress: { onLongPress(node) },
                     onLongPressRelease: onLongPressRelease,
                     onDelete: { onDelete(node.id) },
                     onEdit: { onEdit(node.id) }
                 )
-                .navigationDestination(isPresented: $navigateToDetail) {
-                    destinationView
-                }
 
                 // Inline children (if expanded)
                 if !node.isCollapsed {
@@ -155,6 +205,7 @@ struct NodeTreeRow: View {
                             recordingNodeId: recordingNodeId,
                             selectedNodeId: selectedNodeId,
                             nodeTree: nodeTree,
+                            onNavigateToDetail: onNavigateToDetail,
                             onCheckboxToggle: onCheckboxToggle,
                             onToggleCollapse: onToggleCollapse,
                             onLongPress: onLongPress,
@@ -166,23 +217,6 @@ struct NodeTreeRow: View {
                 }
             }
         }
-    }
-
-    private var destinationView: some View {
-        NodeDetailView(
-            parentNode: node,
-            nodeTree: nodeTree,
-            showCompleted: showCompleted,
-            highlightedNodes: highlightedNodes,
-            recordingNodeId: recordingNodeId,
-            selectedNodeId: selectedNodeId,
-            onCheckboxToggle: onCheckboxToggle,
-            onToggleCollapse: onToggleCollapse,
-            onLongPress: onLongPress,
-            onLongPressRelease: onLongPressRelease,
-            onDelete: onDelete,
-            onEdit: onEdit
-        )
     }
 
     private var visibleChildren: [Node] {
