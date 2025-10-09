@@ -71,7 +71,7 @@ public actor AudioCaptureService {
     private var memoryFile: MemoryAudioFile?
     private var targetOutputSampleRate: Double?
 
-    private let targetSampleRate: Double = 12_000
+    private let targetSampleRate: Double = 16_000
     private let targetChannelCount: AVAudioChannelCount = 1
 
     private let log = AppLogger.speech()
@@ -119,7 +119,9 @@ public actor AudioCaptureService {
 
         audioEngine = engine
         log.log(event: "audioCapture:started", data: [
-            "sourceSampleRate": sourceFormat.sampleRate
+            "sourceSampleRate": sourceFormat.sampleRate,
+            "targetSampleRate": targetSampleRate,
+            "targetChannels": Int(targetChannelCount)
         ])
 
         return ActiveSession(
@@ -164,7 +166,10 @@ public actor AudioCaptureService {
 
         log.log(event: "audioCapture:stopped", data: [
             "durationMs": Int(duration * 1000),
-            "encodedBytes": outputData.count
+            "encodedBytes": outputData.count,
+            "encodedSampleRate": targetSampleRate,
+            "encodedChannels": Int(targetChannelCount),
+            "encodedFormat": "wav-ulaw"
         ])
 
         guard !outputData.isEmpty else {
