@@ -137,6 +137,7 @@
 			buildConfigurationList = 5A168DE351BE6C4D7EC05626 /* Build configuration list for PBXNativeTarget "TalkToDo-iOS" */;
 			buildPhases = (
 				13A5A336B5D3B25BD5A20A3B /* Sources */,
+				8A0C2A3A9B0D4B38A2F37F11 /* Copy Local DotEnv */,
 				B932DDE2F9D19265A8C5D881 /* Resources */,
 				CFE3D809B0BC54D2BADB3FA5 /* Frameworks */,
 			);
@@ -202,6 +203,31 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		8A0C2A3A9B0D4B38A2F37F11 /* Copy Local DotEnv */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/../.env",
+				"$(SRCROOT)/../scripts/copy-dotenv-into-app.sh",
+			);
+			name = "Copy Local DotEnv";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/talktodo.env",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "sh \"${SRCROOT}/../scripts/copy-dotenv-into-app.sh\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		13A5A336B5D3B25BD5A20A3B /* Sources */ = {

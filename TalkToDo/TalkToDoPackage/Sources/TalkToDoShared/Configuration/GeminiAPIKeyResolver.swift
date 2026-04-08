@@ -30,6 +30,8 @@ public struct GeminiAPIKeyResolution: Sendable, Equatable {
 public enum GeminiAPIKeyResolver {
     private static let envKey = "GEMINI_API_KEY"
     private static let infoDictionaryDotEnvPathKey = "TalkToDoDotEnvPath"
+    private static let bundledDotEnvResource = "talktodo"
+    private static let bundledDotEnvExtension = "env"
 
     public static func resolve(
         storedKey: String?,
@@ -38,6 +40,10 @@ public enum GeminiAPIKeyResolver {
     ) -> GeminiAPIKeyResolution? {
         if let environmentKey = normalize(processInfo.environment[envKey]) {
             return GeminiAPIKeyResolution(key: environmentKey, source: .environment)
+        }
+
+        if let bundledDotEnvKey = bundledDotEnvValue(bundle: bundle) {
+            return GeminiAPIKeyResolution(key: bundledDotEnvKey, source: .dotEnv)
         }
 
         if let dotEnvKey = dotEnvValue(bundle: bundle) {
@@ -53,6 +59,18 @@ public enum GeminiAPIKeyResolver {
 
     public static func dotEnvPath(bundle: Bundle = .main) -> String? {
         normalize(bundle.object(forInfoDictionaryKey: infoDictionaryDotEnvPathKey) as? String)
+    }
+
+    private static func bundledDotEnvValue(bundle: Bundle) -> String? {
+        guard let url = bundle.url(
+            forResource: bundledDotEnvResource,
+            withExtension: bundledDotEnvExtension
+        ),
+        let contents = try? String(contentsOf: url, encoding: .utf8) else {
+            return nil
+        }
+
+        return value(for: envKey, in: contents)
     }
 
     private static func dotEnvValue(bundle: Bundle) -> String? {
