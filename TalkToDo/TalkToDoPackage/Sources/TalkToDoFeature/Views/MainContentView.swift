@@ -105,6 +105,22 @@ public struct MainContentView: View {
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
 
+                    if activeProcessingInfo == nil,
+                       let duration = lastLLMResponseDuration {
+                        HStack {
+                            Spacer()
+                            Text("Last AI \(duration, specifier: "%.1f")s")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 4)
+                                .background(.ultraThinMaterial, in: Capsule())
+                                .padding(.horizontal, 16)
+                                .padding(.bottom, 6)
+                        }
+                        .transition(.opacity)
+                    }
+
                     MicrophoneInputBar(
                         status: voiceInputStore.status,
                         isEnabled: voiceInputStore.isEnabled,
@@ -251,6 +267,35 @@ public struct MainContentView: View {
         }
 
         return nil
+    }
+
+    private var lastLLMResponseDuration: TimeInterval? {
+        let voiceResult = voiceCoordinator.flatMap { coordinator -> (TimeInterval, Date)? in
+            guard let duration = coordinator.lastLLMResponseDuration,
+                  let completedAt = coordinator.lastLLMResponseCompletedAt else {
+                return nil
+            }
+            return (duration, completedAt)
+        }
+
+        let textResult = textCoordinator.flatMap { coordinator -> (TimeInterval, Date)? in
+            guard let duration = coordinator.lastLLMResponseDuration,
+                  let completedAt = coordinator.lastLLMResponseCompletedAt else {
+                return nil
+            }
+            return (duration, completedAt)
+        }
+
+        switch (voiceResult, textResult) {
+        case let (.some(voice), .some(text)):
+            return voice.1 >= text.1 ? voice.0 : text.0
+        case let (.some(voice), nil):
+            return voice.0
+        case let (nil, .some(text)):
+            return text.0
+        case (nil, nil):
+            return nil
+        }
     }
 
     // MARK: - Node Actions

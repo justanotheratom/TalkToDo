@@ -9,6 +9,8 @@ public final class TextInputCoordinator {
     public var isProcessing = false
     public var processingError: String?
     public var processingText: String?
+    public var lastLLMResponseDuration: TimeInterval?
+    public var lastLLMResponseCompletedAt: Date?
 
     @ObservationIgnored private let eventStore: EventStore
     @ObservationIgnored private var pipeline: AnyTextProcessingPipeline
@@ -54,7 +56,11 @@ public final class TextInputCoordinator {
 
         do {
             let context = makeProcessingContext(nodeContext: nodeContext)
+            let llmRequestStartTime = Date()
             let result = try await pipeline.process(text: trimmed, context: context)
+            let llmResponseDuration = Date().timeIntervalSince(llmRequestStartTime)
+            lastLLMResponseDuration = llmResponseDuration
+            lastLLMResponseCompletedAt = Date()
             let summary = try operationExecutor.execute(operations: result.operations)
 
             // Track changes for visual feedback
@@ -83,7 +89,8 @@ public final class TextInputCoordinator {
             AppLogger.ui().log(event: "textCoordinator:processSuccess", data: [
                 "operationCount": result.operations.count,
                 "batchId": summary.batchId,
-                "mode": currentMode.rawValue
+                "mode": currentMode.rawValue,
+                "llmResponseTimeMs": Int(llmResponseDuration * 1000)
             ])
         } catch {
             isProcessing = false
