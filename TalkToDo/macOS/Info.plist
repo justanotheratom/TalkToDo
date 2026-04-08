@@ -24,5 +24,7 @@
 	<string>TalkToDo needs microphone access to capture your voice.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>TalkToDo uses speech recognition to convert your voice to structured lists.</string>
+	<key>TalkToDoDotEnvPath</key>
+	<string>$(SRCROOT)/../.env</string>
 </dict>
 </plist>

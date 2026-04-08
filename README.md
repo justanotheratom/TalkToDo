@@ -7,7 +7,7 @@ Hold the mic, speak naturally, and watch your thoughts transform into structured
 ## Features
 
 - **Natural Voice Input**: Speak like a human, see structure like an outliner
-- **AI-Powered**: Uses Gemini 2.5 Flash Lite for intelligent voice processing
+- **AI-Powered**: Uses selectable Gemini remote models for intelligent voice processing
 - **Flexible Processing**: Choose between remote AI or local on-device models
 - **Event Sourcing**: Append-only log with in-memory snapshot for instant UI updates
 - **CloudKit Sync**: Seamless cross-device sync via CloudKit Private Database
@@ -52,15 +52,21 @@ open TalkToDo.xcodeproj
 
 ### 5. Configure Gemini API (Recommended)
 
-1. Visit [Google AI Studio](https://aistudio.google.com/app/apikey) and create a free API key for Gemini 2.5 Flash Lite.
-2. During first launch, TalkToDo will prompt you to paste your API key.
-3. Alternatively, export the key in your shell before running:
+1. Visit [Google AI Studio](https://aistudio.google.com/app/apikey) and create a Gemini API key.
+2. Add it to the repo-root `.env` file:
 
    ```bash
-   export GEMINI_API_KEY="your-gemini-key"
+   GEMINI_API_KEY="your-gemini-key"
    ```
 
-   Or add `GEMINI_API_KEY` to your Xcode scheme's Run action environment variables.
+3. The app will automatically read `GEMINI_API_KEY` from `.env` when running locally.
+4. You can also paste a key in Settings or set `GEMINI_API_KEY` in your Xcode scheme's Run action environment variables.
+
+Remote mode supports these selectable Gemini models in Settings:
+
+- `gemini-3-flash-preview`
+- `gemini-3.1-pro-preview`
+- `gemini-3.1-flash-lite-preview`
 
 **Note:** You can also use on-device processing by selecting "Skip - Use On-Device Mode" during onboarding. This requires downloading a 1.2GB LLM model.
 

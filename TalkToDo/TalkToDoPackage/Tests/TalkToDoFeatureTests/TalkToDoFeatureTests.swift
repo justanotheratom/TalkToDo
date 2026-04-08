@@ -15,12 +15,31 @@ final class TalkToDoFeatureTests: XCTestCase {
         defer { defaults.removePersistentDomain(forName: suiteName) }
 
         let store = VoiceProcessingSettingsStore(defaults: defaults)
-        XCTAssertEqual(store.mode, .onDevice)
+        XCTAssertEqual(store.mode, .remoteGemini)
 
-        store.update(mode: .remoteGemini)
+        store.update(mode: .onDevice)
 
         let reloaded = VoiceProcessingSettingsStore(defaults: defaults)
-        XCTAssertEqual(reloaded.mode, .remoteGemini)
+        XCTAssertEqual(reloaded.mode, .onDevice)
+    }
+
+    @MainActor
+    func testSettingsStorePersistsRemoteModel() {
+        let suiteName = "com.talktodo.tests.remote-model"
+        guard let defaults = UserDefaults(suiteName: suiteName) else {
+            XCTFail("Failed to create user defaults suite")
+            return
+        }
+        defaults.removePersistentDomain(forName: suiteName)
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let store = VoiceProcessingSettingsStore(defaults: defaults)
+        XCTAssertEqual(store.remoteModel, .flashLitePreview)
+
+        store.updateGeminiModel(.proPreview)
+
+        let reloaded = VoiceProcessingSettingsStore(defaults: defaults)
+        XCTAssertEqual(reloaded.remoteModel, .proPreview)
     }
 
     func testGeminiClientThrowsWhenKeyMissing() async {
@@ -29,7 +48,14 @@ final class TalkToDoFeatureTests: XCTestCase {
         let client = GeminiAPIClient(configuration: configuration)
 
         do {
-            _ = try await client.submitTask(audioURL: nil, transcript: "hello", localeIdentifier: nil, eventLog: [], nodeSnapshot: [])
+            _ = try await client.submitTask(
+                audio: nil,
+                transcript: "hello",
+                localeIdentifier: nil,
+                eventLog: [],
+                nodeSnapshot: [],
+                nodeContext: nil
+            )
             XCTFail("Expected missing API key error")
         } catch let error as GeminiAPIClient.ClientError {
             XCTAssertEqual(error, .missingAPIKey)
@@ -44,10 +70,17 @@ final class TalkToDoFeatureTests: XCTestCase {
         let client = GeminiAPIClient(configuration: configuration)
 
         do {
-            _ = try await client.submitTask(audioURL: URL(fileURLWithPath: "/tmp/does-not-exist.caf"), transcript: "hi", localeIdentifier: nil, eventLog: [], nodeSnapshot: [])
-            XCTFail("Expected missing audio error")
+            _ = try await client.submitTask(
+                audio: GeminiAudioPayload(data: Data(), format: "wav"),
+                transcript: nil,
+                localeIdentifier: nil,
+                eventLog: [],
+                nodeSnapshot: [],
+                nodeContext: nil
+            )
+            XCTFail("Expected missing audio data error")
         } catch let error as GeminiAPIClient.ClientError {
-            XCTAssertEqual(error, .missingAudioFile)
+            XCTAssertEqual(error, .missingAudioData)
         } catch {
             XCTFail("Unexpected error: \(error)")
         }
@@ -61,7 +94,7 @@ final class TalkToDoFeatureTests: XCTestCase {
         let context = ProcessingContext(nodeContext: nil, eventLog: [], nodeSnapshot: [])
         let result = try await pipeline.process(text: "type text", context: context)
         XCTAssertEqual(result.transcript, "remote")
-        XCTAssertNil(client.capturedAudioURL)
+        XCTAssertNil(client.capturedAudio)
         XCTAssertEqual(client.capturedTranscript, "type text")
     }
 
@@ -175,7 +208,8 @@ final class TalkToDoFeatureTests: XCTestCase {
             eventStore: store,
             pipeline: AnyTextProcessingPipeline(pipeline),
             mode: .remoteGemini,
-            undoManager: TalkToDoFeature.UndoManager()
+            undoManager: TalkToDoFeature.UndoManager(),
+            changeTracker: ChangeTracker()
         )
 
         await coordinator.processText("Mark it as done")
@@ -218,28 +252,31 @@ final class TalkToDoFeatureTests: XCTestCase {
 
 private final class StubGeminiClient: @unchecked Sendable, GeminiClientProtocol {
     let result: Result<GeminiStructuredResponse, Error>
-    private(set) var capturedAudioURL: URL?
+    private(set) var capturedAudio: GeminiAudioPayload?
     private(set) var capturedTranscript: String?
     private(set) var capturedEventLogCount: Int = 0
     private(set) var capturedEventLog: [EventLogEntry] = []
     private(set) var capturedSnapshotCount: Int = 0
+    private(set) var capturedNodeContext: NodeContext?
 
     init(result: Result<GeminiStructuredResponse, Error>) {
         self.result = result
     }
 
     func submitTask(
-        audioURL: URL?,
+        audio: GeminiAudioPayload?,
         transcript: String?,
         localeIdentifier: String?,
         eventLog: [EventLogEntry],
-        nodeSnapshot: [SnapshotNode]
+        nodeSnapshot: [SnapshotNode],
+        nodeContext: NodeContext?
     ) async throws -> GeminiStructuredResponse {
-        capturedAudioURL = audioURL
+        capturedAudio = audio
         capturedTranscript = transcript
         capturedEventLogCount = eventLog.count
         capturedEventLog = eventLog
         capturedSnapshotCount = nodeSnapshot.count
+        capturedNodeContext = nodeContext
         switch result {
         case .success(let value):
             return value

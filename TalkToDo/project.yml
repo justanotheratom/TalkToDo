@@ -15,6 +15,16 @@ targets:
     type: application
     platform: iOS
     deploymentTarget: "18.5"
+    preBuildScripts:
+      - name: Copy Local DotEnv
+        script: |
+          sh "${SRCROOT}/../scripts/copy-dotenv-into-app.sh"
+        inputFiles:
+          - $(SRCROOT)/../.env
+          - $(SRCROOT)/../scripts/copy-dotenv-into-app.sh
+        outputFiles:
+          - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/talktodo.env
+        basedOnDependencyAnalysis: false
     sources:
       - path: iOS
     resources:

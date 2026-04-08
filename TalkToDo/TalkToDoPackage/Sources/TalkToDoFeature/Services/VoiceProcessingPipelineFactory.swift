@@ -48,11 +48,14 @@ public final class VoiceProcessingPipelineFactory {
     private var cachedGeminiTextPipeline: GeminiTextPipeline?
     private var cachedGeminiClient: GeminiAPIClient?
     private var cachedGeminiAPIKey: String?
+    private var cachedGeminiModel: GeminiRemoteModel?
 
     public init(
         settingsStore: VoiceProcessingSettingsStore,
         llmService: LLMInferenceService,
-        apiKeyProvider: @escaping () -> String? = { ProcessInfo.processInfo.environment["GEMINI_API_KEY"] }
+        apiKeyProvider: @escaping () -> String? = {
+            GeminiAPIKeyResolver.resolve(storedKey: nil)?.key
+        }
     ) {
         self.settingsStore = settingsStore
         self.llmService = llmService
@@ -126,9 +129,10 @@ public final class VoiceProcessingPipelineFactory {
     }
 
     private func geminiClient() -> Result<GeminiAPIClient, RemotePipelineError> {
-        let keyFromStore = settingsStore.remoteAPIKey?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let environmentKey = apiKeyProvider()?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let resolvedKey = keyFromStore?.isEmpty == false ? keyFromStore : environmentKey
+        let storedKey = settingsStore.remoteAPIKey?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let runtimeKey = apiKeyProvider()?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let resolvedKey = runtimeKey?.isEmpty == false ? runtimeKey : storedKey
+        let resolvedModel = settingsStore.remoteModel
 
         guard let apiKey = resolvedKey, !apiKey.isEmpty else {
             AppLogger.ui().log(event: "pipeline:factory:missingGeminiKey", data: [:])
@@ -137,8 +141,10 @@ public final class VoiceProcessingPipelineFactory {
         }
 
         if let cachedKey = cachedGeminiAPIKey,
+           let cachedModel = cachedGeminiModel,
            let cachedClient = cachedGeminiClient,
-           cachedKey == apiKey {
+           cachedKey == apiKey,
+           cachedModel == resolvedModel {
             return .success(cachedClient)
         }
 
@@ -148,9 +154,14 @@ public final class VoiceProcessingPipelineFactory {
             return .failure(.invalidConfiguration)
         }
 
-        let configuration = GeminiAPIClient.Configuration(baseURL: baseURL, apiKey: apiKey)
+        let configuration = GeminiAPIClient.Configuration(
+            baseURL: baseURL,
+            apiKey: apiKey,
+            model: resolvedModel
+        )
         let client = GeminiAPIClient(configuration: configuration)
         cachedGeminiAPIKey = apiKey
+        cachedGeminiModel = resolvedModel
         cachedGeminiClient = client
         cachedGeminiVoicePipeline = nil
         cachedGeminiTextPipeline = nil
@@ -162,5 +173,6 @@ public final class VoiceProcessingPipelineFactory {
         cachedGeminiTextPipeline = nil
         cachedGeminiClient = nil
         cachedGeminiAPIKey = nil
+        cachedGeminiModel = nil
     }
 }
