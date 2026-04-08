@@ -11,6 +11,8 @@ public final class VoiceInputCoordinator {
     public var isProcessing = false
     public var processingError: String?
     public var processingTranscript: String?
+    public var lastLLMResponseDuration: TimeInterval?
+    public var lastLLMResponseCompletedAt: Date?
 
     @ObservationIgnored private let eventStore: EventStore
     @ObservationIgnored private var pipeline: AnyVoiceProcessingPipeline
@@ -67,12 +69,17 @@ public final class VoiceInputCoordinator {
                 "invocationId": invocationID
             ])
             let context = makeProcessingContext(nodeContext: nodeContext)
+            let llmRequestStartTime = Date()
             let result = try await pipeline.process(
                 metadata: metadata,
                 context: context
             )
+            let llmResponseDuration = Date().timeIntervalSince(llmRequestStartTime)
+            lastLLMResponseDuration = llmResponseDuration
+            lastLLMResponseCompletedAt = Date()
             AppLogger.ui().log(event: "voiceCoordinator:pipelineReturned", data: [
                 "operationCount": result.operations.count,
+                "llmResponseTimeMs": Int(llmResponseDuration * 1000),
                 "invocationId": invocationID
             ])
 
@@ -114,6 +121,7 @@ public final class VoiceInputCoordinator {
                 "operationCount": result.operations.count,
                 "batchId": summary.batchId,
                 "mode": currentMode.rawValue,
+                "llmResponseTimeMs": Int(llmResponseDuration * 1000),
                 "invocationId": invocationID
             ])
         } catch {
