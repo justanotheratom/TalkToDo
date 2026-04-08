@@ -129,15 +129,8 @@ private struct APIKeySetupStep: View {
     @State private var validationError: String?
     @State private var showOnDeviceDialog = false
 
-    private var envAPIKey: String? {
-        ProcessInfo.processInfo.environment["GEMINI_API_KEY"]?.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    private var hasEnvKey: Bool {
-        if let key = envAPIKey, !key.isEmpty {
-            return true
-        }
-        return false
+    private var resolvedKey: GeminiAPIKeyResolution? {
+        GeminiAPIKeyResolver.resolve(storedKey: settingsStore.remoteAPIKey)
     }
 
     var body: some View {
@@ -150,8 +143,7 @@ private struct APIKeySetupStep: View {
                 .font(.title2)
                 .fontWeight(.semibold)
 
-            if hasEnvKey {
-                // Environment key detected
+            if let resolvedKey, resolvedKey.source != .savedSettings {
                 VStack(spacing: 12) {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 40))
@@ -160,7 +152,7 @@ private struct APIKeySetupStep: View {
                     Text("API Key Found")
                         .font(.headline)
 
-                    Text("Your Gemini API key was detected in the environment.")
+                    Text("Your Gemini API key was detected from \(resolvedKey.source.displayName).")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)

@@ -16,15 +16,8 @@ public struct RemoteSettingsView: View {
         self._settingsStore = Bindable(settingsStore)
     }
 
-    private var envAPIKey: String? {
-        ProcessInfo.processInfo.environment["GEMINI_API_KEY"]?.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    private var hasEnvKey: Bool {
-        if let key = envAPIKey, !key.isEmpty {
-            return true
-        }
-        return false
+    private var resolvedKey: GeminiAPIKeyResolution? {
+        GeminiAPIKeyResolver.resolve(storedKey: settingsStore.remoteAPIKey)
     }
 
     public var body: some View {
@@ -39,8 +32,11 @@ public struct RemoteSettingsView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 8))
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Gemini 2.5 Flash Lite")
+                        Text(settingsStore.remoteModel.displayName)
                             .font(.headline)
+                        Text(settingsStore.remoteModel.rawValue)
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
                         Text(statusText)
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -48,12 +44,30 @@ public struct RemoteSettingsView: View {
                 }
             }
 
+            Section("Model") {
+                Picker("Gemini Model", selection: remoteModelBinding) {
+                    ForEach(GeminiRemoteModel.allCases, id: \.self) { model in
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(model.displayName)
+                            Text(model.rawValue)
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                        .tag(model)
+                    }
+                }
+
+                Text(settingsStore.remoteModel.summary)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Section {
-                if hasEnvKey {
+                if let resolvedKey {
                     HStack {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundStyle(.green)
-                        Text("Using GEMINI_API_KEY from environment")
+                        Text("Using GEMINI_API_KEY from \(resolvedKey.source.displayName)")
                             .font(.caption)
                     }
                 } else {
@@ -82,10 +96,10 @@ public struct RemoteSettingsView: View {
             } header: {
                 Text("Configuration")
             } footer: {
-                if hasEnvKey {
-                    Text("Your API key is automatically loaded from the environment. No need to paste it manually.")
+                if let resolvedKey {
+                    Text("Your API key is automatically loaded from \(resolvedKey.source.displayName). Changing the model applies to new requests immediately.")
                 } else {
-                    Text("Get a free API key from Google AI Studio. Your audio will be uploaded to Google for processing.")
+                    Text("Get a free API key from Google AI Studio or add `GEMINI_API_KEY` to the repo-root `.env`. Your audio will be uploaded to Google for processing.")
                 }
             }
 
@@ -117,8 +131,8 @@ public struct RemoteSettingsView: View {
     }
 
     private var statusText: String {
-        if hasEnvKey {
-            return "Using environment variable"
+        if let resolvedKey {
+            return "Ready via \(resolvedKey.source.displayName)"
         }
         switch settingsStore.geminiKeyStatus {
         case .missing:
@@ -126,6 +140,13 @@ public struct RemoteSettingsView: View {
         case .present:
             return "Ready to use"
         }
+    }
+
+    private var remoteModelBinding: Binding<GeminiRemoteModel> {
+        Binding(
+            get: { settingsStore.remoteModel },
+            set: { settingsStore.updateGeminiModel($0) }
+        )
     }
 
     private func pasteGeminiKey() {

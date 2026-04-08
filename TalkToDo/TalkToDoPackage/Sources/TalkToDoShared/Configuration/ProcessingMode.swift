@@ -19,7 +19,7 @@ public enum ProcessingMode: String, CaseIterable, Sendable {
         case .onDevice:
             return "Runs transcription and inference entirely on this device."
         case .remoteGemini:
-            return "Uploads audio to Gemini 2.5 Flash Lite for processing."
+            return "Uploads audio to the selected Gemini model for processing."
         }
     }
 
@@ -39,12 +39,14 @@ public final class VoiceProcessingSettingsStore {
     private enum DefaultsKey {
         static let mode = "voiceProcessingMode"
         static let geminiAPIKey = "geminiAPIKey"
+        static let geminiModel = "geminiModel"
     }
 
     private let defaults: UserDefaults
 
     public private(set) var mode: ProcessingMode
     public private(set) var remoteAPIKey: String?
+    public private(set) var remoteModel: GeminiRemoteModel
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -57,6 +59,12 @@ public final class VoiceProcessingSettingsStore {
         }
 
         remoteAPIKey = defaults.string(forKey: DefaultsKey.geminiAPIKey)
+        if let storedModel = defaults.string(forKey: DefaultsKey.geminiModel),
+           let parsedModel = GeminiRemoteModel(rawValue: storedModel) {
+            remoteModel = parsedModel
+        } else {
+            remoteModel = .default
+        }
     }
 
     public func update(mode: ProcessingMode) {
@@ -73,6 +81,11 @@ public final class VoiceProcessingSettingsStore {
             remoteAPIKey = nil
             defaults.removeObject(forKey: DefaultsKey.geminiAPIKey)
         }
+    }
+
+    public func updateGeminiModel(_ model: GeminiRemoteModel) {
+        remoteModel = model
+        defaults.set(model.rawValue, forKey: DefaultsKey.geminiModel)
     }
 
     public var geminiKeyStatus: GeminiKeyStatus {

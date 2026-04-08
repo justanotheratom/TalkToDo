@@ -26,10 +26,16 @@ public struct GeminiAPIClient: GeminiClientProtocol {
     public struct Configuration: Sendable {
         public let baseURL: URL
         public let apiKey: String
+        public let model: GeminiRemoteModel
 
-        public init(baseURL: URL, apiKey: String) {
+        public init(
+            baseURL: URL,
+            apiKey: String,
+            model: GeminiRemoteModel = .default
+        ) {
             self.baseURL = baseURL
             self.apiKey = apiKey
+            self.model = model
         }
     }
 
@@ -203,7 +209,7 @@ public struct GeminiAPIClient: GeminiClientProtocol {
         }
 
         let body: [String: Any] = [
-            "model": "gemini-2.5-flash-lite",
+            "model": configuration.model.rawValue,
             "temperature": 0.2,
             "response_format": ["type": "json_object"],
             "messages": [
@@ -233,6 +239,7 @@ public struct GeminiAPIClient: GeminiClientProtocol {
         let requestSizeBytes = httpBody.count
         AppLogger.llm().log(event: "gemini:requestStart", data: [
             "requestId": requestId,
+            "model": configuration.model.rawValue,
             "requestSizeBytes": requestSizeBytes,
             "hasNodeContext": nodeContext != nil,
             "hasAudio": audio != nil,
@@ -260,7 +267,8 @@ public struct GeminiAPIClient: GeminiClientProtocol {
             AppLogger.llm().log(event: "gemini:requestFailed", data: [
                 "statusCode": httpResponse.statusCode,
                 "latencyMs": networkLatencyMs,
-                "requestId": requestId
+                "requestId": requestId,
+                "model": configuration.model.rawValue
             ])
             throw ClientError.httpError(code: httpResponse.statusCode, message: message)
         }
@@ -287,6 +295,7 @@ public struct GeminiAPIClient: GeminiClientProtocol {
         // Log full LLM response for debugging
         AppLogger.llm().log(event: "gemini:llmResponse", data: [
             "requestId": requestId,
+            "model": configuration.model.rawValue,
             "rawResponse": contentText,
             "extractedJSON": jsonFragment,
             "operationCount": plan.operations.count
@@ -302,7 +311,8 @@ public struct GeminiAPIClient: GeminiClientProtocol {
             "completionTokens": completionTokens,
             "totalTokens": totalTokens,
             "operationCount": plan.operations.count,
-            "hasNodeContext": nodeContext != nil
+            "hasNodeContext": nodeContext != nil,
+            "model": configuration.model.rawValue
         ])
 
         return GeminiStructuredResponse(

@@ -79,7 +79,7 @@ public struct AdvancedSettingsView: View {
             let model = ModelCatalog.defaultModel
             return model.displayName
         case .remoteGemini:
-            return "Gemini 2.5 Flash Lite"
+            return settingsStore.remoteModel.displayName
         }
     }
 
@@ -93,18 +93,10 @@ public struct AdvancedSettingsView: View {
                 return .notConfigured
             }
         case .remoteGemini:
-            // Check environment variable first
-            if let envKey = ProcessInfo.processInfo.environment["GEMINI_API_KEY"]?.trimmingCharacters(in: .whitespacesAndNewlines),
-               !envKey.isEmpty {
+            if GeminiAPIKeyResolver.resolve(storedKey: settingsStore.remoteAPIKey) != nil {
                 return .ready
             }
-            // Fall back to stored key
-            switch settingsStore.geminiKeyStatus {
-            case .present:
-                return .ready
-            case .missing:
-                return .notConfigured
-            }
+            return .notConfigured
         }
     }
 
