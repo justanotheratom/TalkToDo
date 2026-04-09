@@ -42,8 +42,6 @@ public final class VoiceProcessingPipelineFactory {
     private let settingsStore: VoiceProcessingSettingsStore
     private let llmService: LLMInferenceService
     private let apiKeyProvider: () -> String?
-    private lazy var uiTestVoicePipeline = UITestVoicePipeline()
-    private lazy var uiTestTextPipeline = UITestTextPipeline()
     private lazy var onDeviceVoicePipeline = OnDeviceVoicePipeline(llmService: llmService)
     private lazy var onDeviceTextPipeline = OnDeviceTextPipeline(llmService: llmService)
     private var cachedGeminiVoicePipeline: GeminiVoicePipeline?
@@ -65,10 +63,6 @@ public final class VoiceProcessingPipelineFactory {
     }
 
     public func pipeline(for mode: ProcessingMode) -> AnyVoiceProcessingPipeline {
-        if UITestAutomation.isEnabled {
-            return AnyVoiceProcessingPipeline(uiTestVoicePipeline)
-        }
-
         switch mode {
         case .onDevice:
             return AnyVoiceProcessingPipeline(onDeviceVoicePipeline)
@@ -87,10 +81,6 @@ public final class VoiceProcessingPipelineFactory {
     }
 
     public func textPipeline(for mode: ProcessingMode) -> AnyTextProcessingPipeline {
-        if UITestAutomation.isEnabled {
-            return AnyTextProcessingPipeline(uiTestTextPipeline)
-        }
-
         switch mode {
         case .onDevice:
             return AnyTextProcessingPipeline(onDeviceTextPipeline)

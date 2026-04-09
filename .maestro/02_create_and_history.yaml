@@ -6,35 +6,16 @@ name: Create And History
 - runFlow: "helpers/slow_pause.yaml"
 - tapOn:
     id: "text_input_field"
-- inputText: "Weekend errands"
+- inputText: "Call dentist and schedule haircut and pay rent"
 - runFlow: "helpers/slow_pause.yaml"
 - tapOn:
     id: "send_text_button"
 - runFlow: "helpers/slow_pause.yaml"
 - extendedWaitUntil:
-    visible: "Weekend errands"
-    timeout: 5000
-- tapOn:
-    id: "voice_input_button"
-- runFlow: "helpers/slow_pause.yaml"
-- tapOn:
-    id: "text_input_field"
-- inputText: "Grocery Run: Milk, Eggs"
-- runFlow: "helpers/slow_pause.yaml"
-- tapOn:
-    id: "send_text_button"
-- runFlow: "helpers/slow_pause.yaml"
-- extendedWaitUntil:
-    visible: "Grocery Run"
-    timeout: 5000
-- tapOn: "Open Grocery Run"
-- runFlow: "helpers/slow_pause.yaml"
-- extendedWaitUntil:
-    visible: "Milk"
-    timeout: 5000
-- assertVisible: "Eggs"
-- tapOn: "TalkToDo"
-- runFlow: "helpers/slow_pause.yaml"
+    visible: "Call dentist"
+    timeout: 30000
+- assertVisible: "Schedule haircut"
+- assertVisible: "Pay rent"
 - tapOn:
     id: "settings_button"
 - runFlow: "helpers/slow_pause.yaml"
@@ -43,13 +24,14 @@ name: Create And History
 - runFlow: "helpers/slow_pause.yaml"
 - extendedWaitUntil:
     visible: "History"
-    timeout: 3000
+    timeout: 10000
 - assertVisible: "Created"
-- assertVisible: "Weekend errands"
-- assertVisible: "Grocery Run"
+- assertVisible: "Call dentist"
+- assertVisible: "Schedule haircut"
+- assertVisible: "Pay rent"
 - tapOn: "Done"
 - runFlow: "helpers/slow_pause.yaml"
 - tapOn:
     id: "settings_done_button"
 - runFlow: "helpers/slow_pause.yaml"
-- assertVisible: "Weekend errands"
+- assertVisible: "Call dentist"

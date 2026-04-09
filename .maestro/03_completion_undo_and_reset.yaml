@@ -13,7 +13,7 @@ name: Completion Undo And Reset
 - runFlow: "helpers/slow_pause.yaml"
 - extendedWaitUntil:
     visible: "Weekend errands"
-    timeout: 5000
+    timeout: 30000
 - tapOn: "Mark Weekend errands complete"
 - runFlow: "helpers/slow_pause.yaml"
 - assertVisible:
@@ -23,7 +23,7 @@ name: Completion Undo And Reset
 - runFlow: "helpers/slow_pause.yaml"
 - extendedWaitUntil:
     visible: "Weekend errands"
-    timeout: 3000
+    timeout: 10000
 - tapOn:
     id: "settings_button"
 - runFlow: "helpers/slow_pause.yaml"
