@@ -142,12 +142,14 @@ public struct MainContentView: View {
                         Button(action: handleUndo) {
                             Image(systemName: "arrow.uturn.backward")
                         }
+                        .accessibilityIdentifier("undo_button")
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: { showSettings = true }) {
                         Image(systemName: "gearshape")
                     }
+                    .accessibilityIdentifier("settings_button")
                 }
                 #else
                 ToolbarItem(placement: .automatic) {
@@ -155,12 +157,14 @@ public struct MainContentView: View {
                         Button(action: handleUndo) {
                             Image(systemName: "arrow.uturn.backward")
                         }
+                        .accessibilityIdentifier("undo_button")
                     }
                 }
                 ToolbarItem(placement: .automatic) {
                     Button(action: { showSettings = true }) {
                         Image(systemName: "gearshape")
                     }
+                    .accessibilityIdentifier("settings_button")
                 }
                 #endif
             }
@@ -178,6 +182,10 @@ public struct MainContentView: View {
             voiceInputStore: voiceInputStore,
             settingsStore: processingSettings
         )
+        if UITestAutomation.isEnabled {
+            processingSettings.update(mode: .remoteGemini)
+            onboardingStore?.skipOnboarding()
+        }
 
         // Initialize event store and undo manager
         let store = EventStore(modelContext: modelContext, nodeTree: nodeTree)
@@ -564,6 +572,7 @@ public struct MainContentView: View {
         Task {
             let undone = await voiceCoordinator?.undo() ?? false
             if undone {
+                nodeListStore.clearCompletedRemovals()
                 showUndoFeedback("Undone")
             }
         }

@@ -3,6 +3,7 @@ import SwiftData
 @testable import TalkToDoFeature
 @testable import TalkToDoShared
 
+@MainActor
 @available(iOS 18.0, macOS 15.0, *)
 final class ToggleCompleteTests: XCTestCase {
     var modelContext: ModelContext!

@@ -1,0 +1,4 @@
+appId: llc.fungee.talktodo
+name: Slow Pause
+---
+- runScript: "pause.js"

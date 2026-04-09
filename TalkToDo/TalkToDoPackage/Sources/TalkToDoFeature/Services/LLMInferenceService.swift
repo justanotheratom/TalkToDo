@@ -25,7 +25,8 @@ public actor LLMInferenceService {
         try validateModelFile(at: url)
 
         do {
-            let runner = try await Leap.load(url: url)
+            let options = LiquidInferenceEngineOptions(bundlePath: url.path)
+            let runner = try Leap.load(options: options)
             modelRunner = runner
             currentModelURL = url
 
@@ -86,7 +87,10 @@ public actor LLMInferenceService {
                 switch response {
                 case .chunk(let text):
                     fullResponse += text
-                case .complete(_, _):
+                case .complete(let completion):
+                    if fullResponse.isEmpty {
+                        fullResponse = extractText(from: completion.message)
+                    }
                     break
                 default:
                     continue
@@ -319,6 +323,16 @@ public actor LLMInferenceService {
     }
 
     // MARK: - Helpers
+
+    private func extractText(from message: ChatMessage) -> String {
+        message.content.compactMap { content in
+            if case .text(let text) = content {
+                return text
+            }
+            return nil
+        }
+        .joined()
+    }
 
     /// Extract JSON object from response, removing any surrounding text
     private func extractJSON(from response: String) -> String {

@@ -6,7 +6,7 @@ Primary development happens inside `TalkToDo/TalkToDoPackage`. `TalkToDoFeature`
 ## Build, Test, and Development Commands
 Run `open TalkToDo/TalkToDo.xcodeproj` to work in Xcode. For scripted builds use:
 ```bash
-xcodebuild -scheme TalkToDo-iOS -destination 'platform=iOS Simulator,name=iPhone 16' build
+xcodebuild -scheme TalkToDo -destination 'platform=iOS Simulator,name=iPhone 16' build
 xcodebuild -scheme TalkToDo-macOS build
 swift test --package-path TalkToDo/TalkToDoPackage
 ```

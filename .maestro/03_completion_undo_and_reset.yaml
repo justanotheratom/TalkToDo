@@ -1,0 +1,41 @@
+appId: llc.fungee.talktodo
+name: Completion Undo And Reset
+---
+- tapOn:
+    id: "voice_input_button"
+- runFlow: "helpers/slow_pause.yaml"
+- tapOn:
+    id: "text_input_field"
+- inputText: "Weekend errands"
+- runFlow: "helpers/slow_pause.yaml"
+- tapOn:
+    id: "send_text_button"
+- runFlow: "helpers/slow_pause.yaml"
+- extendedWaitUntil:
+    visible: "Weekend errands"
+    timeout: 5000
+- tapOn: "Mark Weekend errands complete"
+- runFlow: "helpers/slow_pause.yaml"
+- assertVisible:
+    id: "undo_button"
+- tapOn:
+    id: "undo_button"
+- runFlow: "helpers/slow_pause.yaml"
+- extendedWaitUntil:
+    visible: "Weekend errands"
+    timeout: 3000
+- tapOn:
+    id: "settings_button"
+- runFlow: "helpers/slow_pause.yaml"
+- tapOn:
+    id: "advanced_link"
+- runFlow: "helpers/slow_pause.yaml"
+- tapOn:
+    id: "delete_all_user_data_button"
+- runFlow: "helpers/slow_pause.yaml"
+- tapOn: "Delete"
+- runFlow: "helpers/slow_pause.yaml"
+- tapOn:
+    id: "settings_done_button"
+- runFlow: "helpers/slow_pause.yaml"
+- assertVisible: "Hold the mic and speak your thoughts"

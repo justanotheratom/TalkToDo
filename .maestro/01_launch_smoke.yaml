@@ -1,0 +1,16 @@
+appId: llc.fungee.talktodo
+name: Launch Smoke
+---
+- assertVisible: "TalkToDo"
+- assertVisible: "Hold the mic and speak your thoughts"
+- assertVisible:
+    id: "voice_input_button"
+- tapOn:
+    id: "voice_input_button"
+- runFlow: "helpers/slow_pause.yaml"
+- assertVisible:
+    id: "text_input_field"
+- tapOn:
+    id: "cancel_text_input_button"
+- runFlow: "helpers/slow_pause.yaml"
+- assertVisible: "Hold the mic and speak your thoughts"

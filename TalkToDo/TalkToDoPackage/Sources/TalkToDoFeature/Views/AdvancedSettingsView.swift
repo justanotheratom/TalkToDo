@@ -57,6 +57,7 @@ public struct AdvancedSettingsView: View {
                 Button(role: .destructive, action: { showDeleteDataAlert = true }) {
                     Label("Delete All User Data", systemImage: "trash")
                 }
+                .accessibilityIdentifier("delete_all_user_data_button")
             } footer: {
                 Text("This will permanently delete all your to-do items and reset the app. This action cannot be undone.")
             }

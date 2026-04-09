@@ -3,10 +3,19 @@ import SwiftUI
 @available(iOS 18.0, macOS 15.0, *)
 public struct CheckboxView: View {
     let isChecked: Bool
+    let accessibilityLabel: String?
+    let accessibilityIdentifier: String?
     let action: () -> Void
 
-    public init(isChecked: Bool, action: @escaping () -> Void) {
+    public init(
+        isChecked: Bool,
+        accessibilityLabel: String? = nil,
+        accessibilityIdentifier: String? = nil,
+        action: @escaping () -> Void
+    ) {
         self.isChecked = isChecked
+        self.accessibilityLabel = accessibilityLabel
+        self.accessibilityIdentifier = accessibilityIdentifier
         self.action = action
     }
 
@@ -27,6 +36,8 @@ public struct CheckboxView: View {
             }
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(accessibilityLabel ?? "")
+        .accessibilityIdentifier(accessibilityIdentifier ?? "")
         .scaleEffect(isChecked ? 0.95 : 1.0)
         .animation(.spring(response: 0.3, dampingFraction: 0.6, blendDuration: 0), value: isChecked)
     }

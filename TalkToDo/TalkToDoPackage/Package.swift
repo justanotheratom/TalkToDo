@@ -18,7 +18,7 @@ let package = Package(
         )
     ],
     dependencies: [
-        .package(url: "https://github.com/Liquid4All/leap-ios.git", from: "0.6.0")
+        .package(url: "https://github.com/Liquid4All/leap-ios.git", from: "0.9.4")
     ],
     targets: [
         .target(
@@ -29,8 +29,7 @@ let package = Package(
             name: "TalkToDoFeature",
             dependencies: [
                 "TalkToDoShared",
-                .product(name: "LeapSDK", package: "leap-ios"),
-                .product(name: "LeapModelDownloader", package: "leap-ios")
+                .product(name: "LeapSDK", package: "leap-ios")
             ],
             linkerSettings: [
                 .linkedFramework("AVFoundation"),

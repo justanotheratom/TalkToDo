@@ -7,16 +7,16 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		1B9107937FEB734137CD3CC9 /* TalkToDoShared in Frameworks */ = {isa = PBXBuildFile; productRef = 6089BD2DF0DCB69CC040FCDB /* TalkToDoShared */; };
-		1E19C26E4C2B89B2208C6CD8 /* TalkToDoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A01FDE7102AE4B0B4D74C946 /* TalkToDoApp.swift */; };
+		152B468CC10FE85B87696D3B /* TalkToDoShared in Frameworks */ = {isa = PBXBuildFile; productRef = F75CCC1202CE9099523BE7B9 /* TalkToDoShared */; };
 		1F289D0DBA8DEC18B2100AED /* TalkToDoShared in Frameworks */ = {isa = PBXBuildFile; productRef = 2451926ECE7119285A17A200 /* TalkToDoShared */; };
+		208F407BF918681ABDC87781 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7B9EDEEAC34DC2966298C8F /* ContentView.swift */; };
 		706CCD4C174ADEE20D97667D /* TalkToDoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3677FDD0DB09CAECB4D7C1C1 /* TalkToDoApp.swift */; };
+		773A6757F51098684CC417FE /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B8986B482C883B1F91BFE7BB /* Assets.xcassets */; };
 		7BF0149E87E14808388CCD2F /* TalkToDoFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 6D0BD4C5B5E211B0007BBFFC /* TalkToDoFeature */; };
 		7F17CDA297D48FEFFE8415F4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 24A9DD4E5DA8179115C546CF /* Assets.xcassets */; };
-		7FAFFD32575A0B120830C5B4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B8986B482C883B1F91BFE7BB /* Assets.xcassets */; };
+		946C8768B8FEC62D32E771FA /* TalkToDoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A01FDE7102AE4B0B4D74C946 /* TalkToDoApp.swift */; };
 		B5ED148A1B0A14AFE7A2E6C5 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFB72481F9DBA867A9109614 /* ContentView.swift */; };
-		B83FE05D6EF6D2B33CA321B2 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7B9EDEEAC34DC2966298C8F /* ContentView.swift */; };
-		CEA1F704C4875413E993D575 /* TalkToDoFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 3DAC79B4B927E2E73EABF6DD /* TalkToDoFeature */; };
+		FDC6470F791F4A8CDAA7B000 /* TalkToDoFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 65028988C184840640401BBD /* TalkToDoFeature */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -25,6 +25,7 @@
 		55514AFF967BA97D309B9276 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		71E2F80BB89CBB4386DA9BE6 /* TalkToDo-macOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "TalkToDo-macOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		800368F7A9750EF83A2F6D56 /* TalkToDo.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TalkToDo.entitlements; sourceTree = "<group>"; };
+		8E45CD244D4A079AECF07282 /* TalkToDo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TalkToDo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9E63F67E14174A7784F35512 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		A01FDE7102AE4B0B4D74C946 /* TalkToDoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TalkToDoApp.swift; sourceTree = "<group>"; };
 		AB2004FA982F34AD908D6FEF /* TalkToDoPackage */ = {isa = PBXFileReference; lastKnownFileType = folder; path = TalkToDoPackage; sourceTree = SOURCE_ROOT; };
@@ -32,16 +33,15 @@
 		BFB72481F9DBA867A9109614 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		C69766AF6DFCD45FDA4E2E9E /* TalkToDo.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TalkToDo.entitlements; sourceTree = "<group>"; };
 		D7B9EDEEAC34DC2966298C8F /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		F069371C8E25A0C578E386D7 /* TalkToDo-iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "TalkToDo-iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		CFE3D809B0BC54D2BADB3FA5 /* Frameworks */ = {
+		CAF07E4BC7ADEF1FDF989773 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				CEA1F704C4875413E993D575 /* TalkToDoFeature in Frameworks */,
-				1B9107937FEB734137CD3CC9 /* TalkToDoShared in Frameworks */,
+				FDC6470F791F4A8CDAA7B000 /* TalkToDoFeature in Frameworks */,
+				152B468CC10FE85B87696D3B /* TalkToDoShared in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -102,8 +102,8 @@
 		FA4341633C4EEF2B4C313E3B /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				F069371C8E25A0C578E386D7 /* TalkToDo-iOS.app */,
 				71E2F80BB89CBB4386DA9BE6 /* TalkToDo-macOS.app */,
+				8E45CD244D4A079AECF07282 /* TalkToDo.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -111,6 +111,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		5183840284F332E4E9FEFBB0 /* TalkToDo */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C5935F9B2CB46C2AB1B1EADE /* Build configuration list for PBXNativeTarget "TalkToDo" */;
+			buildPhases = (
+				94A82EE94032F6614625C28D /* Copy Local DotEnv */,
+				8C5040D2570C9BCC7ACAE2C2 /* Sources */,
+				31BBD6CD74F4A110D2F25300 /* Resources */,
+				CAF07E4BC7ADEF1FDF989773 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = TalkToDo;
+			packageProductDependencies = (
+				65028988C184840640401BBD /* TalkToDoFeature */,
+				F75CCC1202CE9099523BE7B9 /* TalkToDoShared */,
+			);
+			productName = TalkToDo;
+			productReference = 8E45CD244D4A079AECF07282 /* TalkToDo.app */;
+			productType = "com.apple.product-type.application";
+		};
 		B69D887E225C0E07E05B996C /* TalkToDo-macOS */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 06D079960C07FB0C69332450 /* Build configuration list for PBXNativeTarget "TalkToDo-macOS" */;
@@ -130,28 +152,6 @@
 			);
 			productName = "TalkToDo-macOS";
 			productReference = 71E2F80BB89CBB4386DA9BE6 /* TalkToDo-macOS.app */;
-			productType = "com.apple.product-type.application";
-		};
-		C7DAA277352B2DA9BD5F7FFC /* TalkToDo-iOS */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 5A168DE351BE6C4D7EC05626 /* Build configuration list for PBXNativeTarget "TalkToDo-iOS" */;
-			buildPhases = (
-				13A5A336B5D3B25BD5A20A3B /* Sources */,
-				8A0C2A3A9B0D4B38A2F37F11 /* Copy Local DotEnv */,
-				B932DDE2F9D19265A8C5D881 /* Resources */,
-				CFE3D809B0BC54D2BADB3FA5 /* Frameworks */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = "TalkToDo-iOS";
-			packageProductDependencies = (
-				3DAC79B4B927E2E73EABF6DD /* TalkToDoFeature */,
-				6089BD2DF0DCB69CC040FCDB /* TalkToDoShared */,
-			);
-			productName = "TalkToDo-iOS";
-			productReference = F069371C8E25A0C578E386D7 /* TalkToDo-iOS.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -179,13 +179,21 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				C7DAA277352B2DA9BD5F7FFC /* TalkToDo-iOS */,
+				5183840284F332E4E9FEFBB0 /* TalkToDo */,
 				B69D887E225C0E07E05B996C /* TalkToDo-macOS */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		31BBD6CD74F4A110D2F25300 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				773A6757F51098684CC417FE /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		8F00F202C01374B977C3C294 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -194,18 +202,10 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		B932DDE2F9D19265A8C5D881 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				7FAFFD32575A0B120830C5B4 /* Assets.xcassets in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		8A0C2A3A9B0D4B38A2F37F11 /* Copy Local DotEnv */ = {
+		94A82EE94032F6614625C28D /* Copy Local DotEnv */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -230,12 +230,12 @@
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		13A5A336B5D3B25BD5A20A3B /* Sources */ = {
+		8C5040D2570C9BCC7ACAE2C2 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B83FE05D6EF6D2B33CA321B2 /* ContentView.swift in Sources */,
-				1E19C26E4C2B89B2208C6CD8 /* TalkToDoApp.swift in Sources */,
+				208F407BF918681ABDC87781 /* ContentView.swift in Sources */,
+				946C8768B8FEC62D32E771FA /* TalkToDoApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -251,6 +251,28 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
+		40BF1FDF18D63FEA565DEF9F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = iOS/TalkToDo.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = 58MYNHGN72;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = iOS/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = llc.fungee.talktodo;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		4CC3573F1ACC791A56FCACC3 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -307,7 +329,7 @@
 			};
 			name = Release;
 		};
-		790C6E6C8B94A17789F9D03A /* Debug */ = {
+		8BE919D9B106A89714D143CD /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -322,7 +344,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.talktodo.ios;
+				PRODUCT_BUNDLE_IDENTIFIER = llc.fungee.talktodo;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.9;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -432,28 +454,6 @@
 			};
 			name = Debug;
 		};
-		D81D59C42233F6F599793BFE /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = iOS/TalkToDo.entitlements;
-				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = 58MYNHGN72;
-				ENABLE_PREVIEWS = YES;
-				INFOPLIST_FILE = iOS/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.talktodo.ios;
-				SDKROOT = iphoneos;
-				SWIFT_VERSION = 5.9;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -475,11 +475,11 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
-		5A168DE351BE6C4D7EC05626 /* Build configuration list for PBXNativeTarget "TalkToDo-iOS" */ = {
+		C5935F9B2CB46C2AB1B1EADE /* Build configuration list for PBXNativeTarget "TalkToDo" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				790C6E6C8B94A17789F9D03A /* Debug */,
-				D81D59C42233F6F599793BFE /* Release */,
+				8BE919D9B106A89714D143CD /* Debug */,
+				40BF1FDF18D63FEA565DEF9F /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
@@ -498,17 +498,17 @@
 			isa = XCSwiftPackageProductDependency;
 			productName = TalkToDoShared;
 		};
-		3DAC79B4B927E2E73EABF6DD /* TalkToDoFeature */ = {
+		65028988C184840640401BBD /* TalkToDoFeature */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = TalkToDoFeature;
-		};
-		6089BD2DF0DCB69CC040FCDB /* TalkToDoShared */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = TalkToDoShared;
 		};
 		6D0BD4C5B5E211B0007BBFFC /* TalkToDoFeature */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = TalkToDoFeature;
+		};
+		F75CCC1202CE9099523BE7B9 /* TalkToDoShared */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = TalkToDoShared;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

@@ -36,6 +36,7 @@ public struct SettingsView: View {
                     NavigationLink("History") {
                         ChangelogView()
                     }
+                    .accessibilityIdentifier("history_link")
                 }
 
                 Section {
@@ -46,6 +47,7 @@ public struct SettingsView: View {
                     NavigationLink("Advanced") {
                         AdvancedSettingsView(settingsStore: settingsStore)
                     }
+                    .accessibilityIdentifier("advanced_link")
                 }
             }
             .navigationTitle("Settings")
@@ -58,12 +60,14 @@ public struct SettingsView: View {
                     Button("Done") {
                         dismiss()
                     }
+                    .accessibilityIdentifier("settings_done_button")
                 }
                 #else
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
                         dismiss()
                     }
+                    .accessibilityIdentifier("settings_done_button")
                 }
                 #endif
             }

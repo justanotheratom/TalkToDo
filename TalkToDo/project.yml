@@ -11,7 +11,7 @@ packages:
     path: TalkToDoPackage
 
 targets:
-  TalkToDo-iOS:
+  TalkToDo:
     type: application
     platform: iOS
     deploymentTarget: "18.5"
@@ -36,7 +36,7 @@ targets:
         product: TalkToDoShared
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.talktodo.ios
+        PRODUCT_BUNDLE_IDENTIFIER: llc.fungee.talktodo
         INFOPLIST_FILE: iOS/Info.plist
         SWIFT_VERSION: "5.9"
         ENABLE_PREVIEWS: YES
@@ -56,6 +56,7 @@ targets:
           - UIInterfaceOrientationPortraitUpsideDown
         NSMicrophoneUsageDescription: "TalkToDo needs microphone access to capture your voice."
         NSSpeechRecognitionUsageDescription: "TalkToDo uses speech recognition to convert your voice to structured lists."
+        TalkToDoDotEnvPath: "$(SRCROOT)/../.env"
 
   TalkToDo-macOS:
     type: application
@@ -84,3 +85,4 @@ targets:
         CFBundleDisplayName: TalkToDo
         NSMicrophoneUsageDescription: "TalkToDo needs microphone access to capture your voice."
         NSSpeechRecognitionUsageDescription: "TalkToDo uses speech recognition to convert your voice to structured lists."
+        TalkToDoDotEnvPath: "$(SRCROOT)/../.env"

@@ -25,7 +25,7 @@ open TalkToDo.xcodeproj
 ### Building
 ```bash
 # iOS Simulator (adjust device name to match your installed runtimes)
-xcodebuild -scheme TalkToDo-iOS -destination 'platform=iOS Simulator,name=iPhone 16' build
+xcodebuild -scheme TalkToDo -destination 'platform=iOS Simulator,name=iPhone 16' build
 
 # macOS
 xcodebuild -scheme TalkToDo-macOS build

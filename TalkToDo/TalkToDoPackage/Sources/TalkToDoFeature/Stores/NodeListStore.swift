@@ -10,6 +10,7 @@ public final class NodeListStore {
     public var recordingNodeId: String?
     public var selectedNodeId: String?  // Node selected for voice context
     public var completedNodesToRemove: Set<String> = []
+    @ObservationIgnored private var pendingRemovalTasks: [String: Task<Void, Never>] = [:]
 
     public init() {}
 
@@ -36,17 +37,28 @@ public final class NodeListStore {
     }
 
     public func scheduleRemoval(of nodeId: String) {
-        Task { @MainActor in
+        pendingRemovalTasks[nodeId]?.cancel()
+
+        pendingRemovalTasks[nodeId] = Task { @MainActor in
             try? await Task.sleep(for: .seconds(1.5))
+            guard !Task.isCancelled else { return }
+
+            pendingRemovalTasks[nodeId] = nil
             completedNodesToRemove.insert(nodeId)
         }
     }
 
     public func restoreNode(_ nodeId: String) {
+        pendingRemovalTasks[nodeId]?.cancel()
+        pendingRemovalTasks[nodeId] = nil
         completedNodesToRemove.remove(nodeId)
     }
 
     public func clearCompletedRemovals() {
+        for task in pendingRemovalTasks.values {
+            task.cancel()
+        }
+        pendingRemovalTasks.removeAll()
         completedNodesToRemove.removeAll()
     }
 }

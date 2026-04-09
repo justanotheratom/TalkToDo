@@ -21,18 +21,21 @@ struct CircularActionButton: View {
     let size: CGFloat
     let action: () -> Void
     let accessibilityLabel: String?
+    let accessibilityIdentifier: String?
 
     init(
         icon: String,
         style: ButtonStyle = .primary,
         size: CGFloat = 40,
         accessibilityLabel: String? = nil,
+        accessibilityIdentifier: String? = nil,
         action: @escaping () -> Void
     ) {
         self.icon = icon
         self.style = style
         self.size = size
         self.accessibilityLabel = accessibilityLabel
+        self.accessibilityIdentifier = accessibilityIdentifier
         self.action = action
     }
 
@@ -51,6 +54,7 @@ struct CircularActionButton: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(accessibilityLabel ?? "")
+        .accessibilityIdentifier(accessibilityIdentifier ?? "")
     }
 
     private var iconSize: CGFloat {

@@ -9,21 +9,10 @@ struct TalkToDoApp: App {
     @StateObject private var fontPreference = FontPreference()
 
     init() {
-        do {
-            // Configure SwiftData with CloudKit sync
-            let schema = Schema([NodeEvent.self])
-            let modelConfiguration = ModelConfiguration(
-                schema: schema,
-                isStoredInMemoryOnly: false,
-                cloudKitDatabase: .private("iCloud.com.talktodo.macos")
-            )
-            modelContainer = try ModelContainer(
-                for: schema,
-                configurations: [modelConfiguration]
-            )
-        } catch {
-            fatalError("Failed to configure ModelContainer: \(error)")
-        }
+        modelContainer = AppModelContainerFactory.makeModelContainer(
+            cloudKitIdentifier: "iCloud.com.talktodo.macos",
+            useCloudKit: Self.shouldUseCloudKit
+        )
     }
 
     var body: some Scene {
@@ -32,5 +21,13 @@ struct TalkToDoApp: App {
                 .environmentObject(fontPreference)
         }
         .modelContainer(modelContainer)
+    }
+
+    private static var shouldUseCloudKit: Bool {
+        if ProcessInfo.processInfo.environment["TALKTODO_DISABLE_CLOUDKIT"] == "1" {
+            return false
+        }
+
+        return true
     }
 }

@@ -178,6 +178,7 @@ public struct MicrophoneInputBar: View {
         .simultaneousGesture(longPressGesture.sequenced(before: dragGesture))
         .animation(.spring(response: 0.35, dampingFraction: 0.7), value: status)
         .accessibilityElement(children: .ignore)
+        .accessibilityIdentifier("voice_input_button")
         .accessibilityLabel(microphoneAccessibilityLabel)
         .accessibilityHint(microphoneAccessibilityHint)
         .accessibilityAddTraits(.isButton)
@@ -201,6 +202,7 @@ public struct MicrophoneInputBar: View {
                     RoundedRectangle(cornerRadius: 22)
                         .strokeBorder(.quaternary, lineWidth: 0.5)
                 }
+                .accessibilityIdentifier("text_input_field")
                 .onSubmit {
                     sendTextInput()
                 }
@@ -209,6 +211,8 @@ public struct MicrophoneInputBar: View {
                 icon: "arrow.up",
                 style: .primary,
                 size: 40,
+                accessibilityLabel: "Send text input",
+                accessibilityIdentifier: "send_text_button",
                 action: sendTextInput
             )
             .disabled(textInputContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -226,6 +230,7 @@ public struct MicrophoneInputBar: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("cancel_text_input_button")
         }
     }
 

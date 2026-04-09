@@ -53,7 +53,14 @@ public struct EnhancedNodeRow: View {
     public var body: some View {
         HStack(spacing: 12) {
             // Checkbox
-            CheckboxView(isChecked: node.isCompleted, action: onCheckboxToggle)
+            CheckboxView(
+                isChecked: node.isCompleted,
+                accessibilityLabel: node.isCompleted
+                    ? "Mark \(node.title) incomplete"
+                    : "Mark \(node.title) complete",
+                accessibilityIdentifier: "node_checkbox_\(node.id)",
+                action: onCheckboxToggle
+            )
 
             // Title
             Text(node.title)
@@ -78,6 +85,8 @@ public struct EnhancedNodeRow: View {
                         .frame(width: 18, height: 18)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Open \(node.title)")
+                .accessibilityIdentifier("open_node_\(node.id)")
             }
         }
         .padding(.vertical, 12)
